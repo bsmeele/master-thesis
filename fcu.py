@@ -2,7 +2,7 @@ from sympy import symbols, Matrix, zeros
 
 def main():
     # Matrix dimensions
-    M, N = 8, 6
+    M, N = 3, 3
 
     # Setting up symbols
     Rsense, Rcol, Rrow = symbols('Rsense Rcol Rrow')
@@ -11,13 +11,13 @@ def main():
     Va = [[symbols(f'Va{i+1}{j+1}') for j in range(N)] for i in range(M)]
     Vin = [symbols(f'Vin{i+1}') for i in range(M)]
 
-    M, N = 3, 3
-    Rsense, Rcol, Rrow = 5, 2, 3
-    G = [[1/10, 1/15, 1/20], [1/25, 1/30, 1/35], [1/40, 1/45, 1/50]]
-    # G = [[0, 0, 0], [0, 0, 0], [1/10, 0, 0]]
-    V = [[((i+1)*(j+1)) for j in range(N)] for i in range(M)]
-    Va = [[((i+1)*(j+1))  for j in range(N)] for i in range(M)]
-    Vin = [5, 7, 9]
+    # M, N = 3, 3
+    # Rsense, Rcol, Rrow = 5, 2, 3
+    # G = [[1/10, 1/15, 1/20], [1/25, 1/30, 1/35], [1/40, 1/45, 1/50]]
+    # # G = [[0, 0, 0], [0, 0, 0], [1/10, 0, 0]]
+    # V = [[((i+1)*(j+1)) for j in range(N)] for i in range(M)]
+    # Va = [[((i+1)*(j+1))  for j in range(N)] for i in range(M)]
+    # Vin = [5, 7, 9]
 
     # M, N = 2, 2
     # Rsense, Rcol, Rrow = 5, 2, 3
