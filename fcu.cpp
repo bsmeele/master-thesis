@@ -4,64 +4,9 @@
 #include <vector>
 #include <chrono>
 
-int main(int argc, char* argv[]) {
-    srand((unsigned int) time(0));
-
-    int M = (argc >= 2) ? std::atoi(argv[1]) : 16;
-    int N = (argc >= 3) ? std::atoi(argv[2]) : 16;
-
-    bool print = false;
-    if (std::atoi(argv[3]) == 1) { print = true; }
-
-    float Rmin = 100.;
-    float Rmax = 1000.;
-    float Vdd = 5.;
-
-    float Rcol = 2.;
-    float Rrow = 3.;
-    float Rsense = 5.;
-
-    if (print) {
-        std::cout << "Rcol: " << Rcol << std::endl;
-        std::cout << "Rrow: " << Rrow << std::endl;
-        std::cout << "Rsense: " << Rsense << std::endl << std::endl;
-    }
-
-    // Construct G matrix with random values
-    Eigen::MatrixXf R = Eigen::MatrixXf::Random(M, N);
-    R = (R + Eigen::MatrixXf::Constant(M, N, 1.0)) * 0.5 * (Rmax - Rmin) + Eigen::MatrixXf::Constant(M, N, Rmin);
-    // R(0, 0) = 10.;
-    // R(0, 1) = 15.;
-    // R(0, 2) = 20.;
-    // R(1, 0) = 25.;
-    // R(1, 1) = 30.;
-    // R(1, 2) = 35.;
-    // R(2, 0) = 40.;
-    // R(2, 1) = 45.;
-    // R(2, 2) = 50.;
-
-    if (print) {
-        std::cout << "R:\n" << R << std::endl << std::endl;
-    }
-
-    Eigen::MatrixXf G = R.cwiseInverse();
-
-    if (print) {
-        std::cout << "G:\n" << G << std::endl << std::endl;
-    }
-
-    // Construct Vin with random values
-    Eigen::VectorXf Vin = Eigen::VectorXf::Random(M);
-    Vin = (Vin.array() > 0.5).select(Eigen::VectorXf::Constant(M, Vdd), Eigen::VectorXf::Zero(M));
-    // Vin(0) = 5;
-    // Vin(1) = 7;
-    // Vin(2) = 9;
-
-    if (print) {
-        std::cout << "Vin:\n" << Vin << std::endl << std::endl;
-    }
-
-    auto start_time = std::chrono::high_resolution_clock::now();
+Eigen::VectorXf solve_fcu(const Eigen::MatrixXf& G, const Eigen::VectorXf& Vin, const float Rcol, const float Rrow, const float Rsense, bool print = false) {
+    int M = G.rows();
+    int N = G.cols();
 
     // ----- Step 1: Formulate Column Linear Systems -----
     // A consists of N matrices, which are each MxM
@@ -211,7 +156,7 @@ int main(int argc, char* argv[]) {
     Eigen::MatrixXf Gmat_t = Gmat.transpose();
     Eigen::SparseMatrix<float> Gmat_t_sparse = Gmat_t.sparseView();
 
-    Eigen::BiCGSTAB<Eigen::SparseMatrix<float>> solver; // +- 850 ms for 32x32
+    Eigen::BiCGSTAB<Eigen::SparseMatrix<float>> solver;
 
     solver.compute(COLROWmat.transpose());
     Eigen::SparseMatrix<float> NETmat = solver.solve(Gmat_t_sparse).transpose();
@@ -235,12 +180,91 @@ int main(int argc, char* argv[]) {
 
     Eigen::VectorXf Iout = NETmatC * Vin;
 
-    auto end_time = std::chrono::high_resolution_clock::now();
+    return Iout;
+}
 
-    std::cout << "Iout:\n" << Iout << std::endl;
+int main(int argc, char* argv[]) {
+    long long total_time = 0;
 
-    auto execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-    std::cout << "Execution time: " << execution_time << " (ms)" << std::endl;
+    srand((unsigned int) time(0));
+
+    int M = (argc >= 2) ? std::atoi(argv[1]) : 16;
+    int N = (argc >= 3) ? std::atoi(argv[2]) : 16;
+
+    int runs = (argc >= 4) ? std::atoi(argv[3]) : 1;
+
+    bool print = false;
+    if (std::atoi(argv[4]) == 1) { print = true; }
+
+    for (int i = 0; i < runs; i++) {
+        float Rmin = 100.;
+        float Rmax = 1000.;
+        float Vdd = 5.;
+
+        float Rcol = 2.;
+        float Rrow = 3.;
+        float Rsense = 5.;
+
+        if (print) {
+            std::cout << "Rcol: " << Rcol << std::endl;
+            std::cout << "Rrow: " << Rrow << std::endl;
+            std::cout << "Rsense: " << Rsense << std::endl << std::endl;
+        }
+
+        // Construct G matrix with random values
+        Eigen::MatrixXf R = Eigen::MatrixXf::Random(M, N);
+        R = (R + Eigen::MatrixXf::Constant(M, N, 1.0)) * 0.5 * (Rmax - Rmin) + Eigen::MatrixXf::Constant(M, N, Rmin);
+        // R(0, 0) = 10.;
+        // R(0, 1) = 15.;
+        // R(0, 2) = 20.;
+        // R(1, 0) = 25.;
+        // R(1, 1) = 30.;
+        // R(1, 2) = 35.;
+        // R(2, 0) = 40.;
+        // R(2, 1) = 45.;
+        // R(2, 2) = 50.;
+
+        if (print) {
+            std::cout << "R:\n" << R << std::endl << std::endl;
+        }
+
+        Eigen::MatrixXf G = R.cwiseInverse();
+
+        if (print) {
+            std::cout << "G:\n" << G << std::endl << std::endl;
+        }
+
+        // Construct Vin with random values
+        Eigen::VectorXf Vin = Eigen::VectorXf::Random(M);
+        Vin = (Vin.array() > 0.5).select(Eigen::VectorXf::Constant(M, Vdd), Eigen::VectorXf::Zero(M));
+        // Vin(0) = 5;
+        // Vin(1) = 7;
+        // Vin(2) = 9;
+
+        if (print) {
+            std::cout << "Vin:\n" << Vin << std::endl << std::endl;
+        }
+
+        // Eigen::VectorXf Iout(N)
+
+        auto start_time = std::chrono::high_resolution_clock::now();
+
+        Eigen::VectorXf Iout = solve_fcu(G, Vin, Rcol, Rrow, Rsense, print);
+
+        auto end_time = std::chrono::high_resolution_clock::now();
+
+        if (print) {
+            std::cout << Iout << std::endl << std::endl;
+        }
+
+        auto execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+        
+        // std::cout << "Execution time: " << execution_time << " ms" << std::endl;
+
+        total_time += execution_time;
+    }
+
+    std::cout << "Average execution time: " << total_time/runs << " ms" << std::endl;
 
     return 0;
 }
