@@ -8,6 +8,8 @@
 // https://ieeexplore-ieee-org.tudelft.idm.oclc.org/document/9108292
 
 Eigen::VectorXf solve_fcu(const Eigen::MatrixXf& G, const Eigen::VectorXf& Vin, const float Rcol, const float Rrow, const float Rsense, bool print = false) {
+    // auto start_time = std::chrono::high_resolution_clock::now();
+
     int M = G.rows();
     int N = G.cols();
 
@@ -58,6 +60,11 @@ Eigen::VectorXf solve_fcu(const Eigen::MatrixXf& G, const Eigen::VectorXf& Vin, 
     //     }
     // }
 
+    // auto timestamp1 = std::chrono::high_resolution_clock::now();
+    // auto execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp1 - start_time).count();
+    // std::cout << "Setup time: " << execution_time << " (ms)" << std::endl;
+    // timestamp1 = std::chrono::high_resolution_clock::now();
+
     // ----- Step 2: Merge Column Linear Systems -----
     // COLmat is the direct sum of (Aj + J * Kj), thus is a M*N x M*N matrix
     Eigen::MatrixXf COLmat = Eigen::MatrixXf::Zero(M*N, M*N);
@@ -73,6 +80,11 @@ Eigen::VectorXf solve_fcu(const Eigen::MatrixXf& G, const Eigen::VectorXf& Vin, 
         // COLmat.block(j*M, j*M, tmp.rows(), tmp.cols()) = tmp;
     }
 
+    // auto timestamp2 = std::chrono::high_resolution_clock::now();
+    // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp2 - timestamp1).count();
+    // std::cout << "COLmat time: " << execution_time << " (ms)" << std::endl;
+    // timestamp2 = std::chrono::high_resolution_clock::now();
+
     if (print) {
         std::cout << "COLmat:\n" << COLmat << std::endl << std::endl;
     }
@@ -84,6 +96,11 @@ Eigen::VectorXf solve_fcu(const Eigen::MatrixXf& G, const Eigen::VectorXf& Vin, 
             Gmat(j, i + j*M) = G(i, j);
         }
     }
+
+    // auto timestamp3 = std::chrono::high_resolution_clock::now();
+    // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp3 - timestamp2).count();
+    // std::cout << "Gmat time: " << execution_time << " (ms)" << std::endl;
+    // timestamp3 = std::chrono::high_resolution_clock::now();
 
     if (print) {
         std::cout << "Gmat:\n" << Gmat << std::endl << std::endl;
@@ -124,6 +141,11 @@ Eigen::VectorXf solve_fcu(const Eigen::MatrixXf& G, const Eigen::VectorXf& Vin, 
     }
     ROWmat *= Rrow;
 
+    // auto timestamp4 = std::chrono::high_resolution_clock::now();
+    // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp4 - timestamp3).count();
+    // std::cout << "ROWmat time: " << execution_time << " (ms)" << std::endl;
+    // timestamp4 = std::chrono::high_resolution_clock::now();
+
     if (print) {
         std::cout << "ROWmat:\n" << ROWmat << std::endl << std::endl;
     }
@@ -142,6 +164,11 @@ Eigen::VectorXf solve_fcu(const Eigen::MatrixXf& G, const Eigen::VectorXf& Vin, 
             ROWmatA.col(j*M + i) = ROWmatAint.col(i*N + j);
         }
     }
+
+    // auto timestamp5 = std::chrono::high_resolution_clock::now();
+    // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp5 - timestamp4).count();
+    // std::cout << "ROWmatA time: " << execution_time << " (ms)" << std::endl;
+    // timestamp5 = std::chrono::high_resolution_clock::now();
 
     if (print) {
         std::cout << "ROWmatA:\n" << ROWmatA << std::endl << std::endl;
@@ -163,6 +190,11 @@ Eigen::VectorXf solve_fcu(const Eigen::MatrixXf& G, const Eigen::VectorXf& Vin, 
     solver.compute(COLROWmat.transpose());
     Eigen::SparseMatrix<float> NETmat = solver.solve(Gmat_t_sparse).transpose();
 
+    // auto timestamp6 = std::chrono::high_resolution_clock::now();
+    // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp6 - timestamp5).count();
+    // std::cout << "Solve time: " << execution_time << " (ms)" << std::endl;
+    // timestamp6 = std::chrono::high_resolution_clock::now();
+
     if (print) {
         std::cout << "NETmat:\n" << NETmat << std::endl << std::endl;
     }
@@ -176,11 +208,21 @@ Eigen::VectorXf solve_fcu(const Eigen::MatrixXf& G, const Eigen::VectorXf& Vin, 
         }
     }
 
+    // auto timestamp7 = std::chrono::high_resolution_clock::now();
+    // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp7 - timestamp6).count();
+    // std::cout << "NETmatC time: " << execution_time << " (ms)" << std::endl;
+    // timestamp7 = std::chrono::high_resolution_clock::now();
+
     if (print) {
         std::cout << "NETmatC:\n" << NETmatC << std::endl << std::endl;
     }
 
     Eigen::VectorXf Iout = NETmatC * Vin;
+
+    // auto timestamp8 = std::chrono::high_resolution_clock::now();
+    // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp8 - timestamp7).count();
+    // std::cout << "Iout time: " << execution_time << " (ms)" << std::endl;
+    // timestamp8 = std::chrono::high_resolution_clock::now();
 
     return Iout;
 }
@@ -266,7 +308,9 @@ int main(int argc, char* argv[]) {
         total_time += execution_time;
     }
 
-    std::cout << "Average execution time: " << total_time/runs << " ms" << std::endl;
+    if (runs > 1) {
+        std::cout << "Average execution time: " << total_time/runs << " ms" << std::endl;
+    }
 
     return 0;
 }
