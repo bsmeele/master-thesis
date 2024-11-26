@@ -4,6 +4,9 @@
 #include <vector>
 #include <chrono>
 
+// Based on:
+// https://ieeexplore-ieee-org.tudelft.idm.oclc.org/document/6473873
+
 std::vector<float> solve_cam(
     const Eigen::MatrixXf& G,
     const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,
@@ -141,7 +144,7 @@ int main(int argc, char* argv[]) {
 
     long long total_time = 0;
 
-    for (int i = 0; i < runs; i++) {
+    for (int i = 0; i < runs; i++) {        
         float Rmin = 100.;
         float Rmax = 1000.;
         float Vdd = 5.;
@@ -167,15 +170,15 @@ int main(int argc, char* argv[]) {
         Eigen::MatrixXf R = Eigen::MatrixXf::Random(M, N);
         R = (R + Eigen::MatrixXf::Constant(M, N, 1.0)) * 0.5 * (Rmax - Rmin) + Eigen::MatrixXf::Constant(M, N, Rmin);
         // R = Eigen::MatrixXf::Zero(M, N);
-        R(0, 0) = 10.;
-        R(0, 1) = 15.;
-        R(0, 2) = 20.;
-        R(1, 0) = 25.;
-        R(1, 1) = 30.;
-        R(1, 2) = 35.;
-        R(2, 0) = 40.;
-        R(2, 1) = 45.;
-        R(2, 2) = 50.;
+        // R(0, 0) = 10.;
+        // R(0, 1) = 15.;
+        // R(0, 2) = 20.;
+        // R(1, 0) = 25.;
+        // R(1, 1) = 30.;
+        // R(1, 2) = 35.;
+        // R(2, 0) = 40.;
+        // R(2, 1) = 45.;
+        // R(2, 2) = 50.;
 
         if (print) {
             std::cout << "R:\n" << R << std::endl << std::endl;
@@ -189,9 +192,9 @@ int main(int argc, char* argv[]) {
 
         Eigen::VectorXf Vappwl1 = Eigen::VectorXf::Random(M);
         Vappwl1 = (Vappwl1.array() > 0.5).select(Eigen::VectorXf::Constant(M, Vdd), Eigen::VectorXf::Zero(M));
-        Vappwl1(0) = 5;
-        Vappwl1(1) = 7;
-        Vappwl1(2) = 9;
+        // Vappwl1(0) = 5;
+        // Vappwl1(1) = 7;
+        // Vappwl1(2) = 9;
 
         Eigen::VectorXf Vappwl2 = Eigen::VectorXf::Zero(M);
         Eigen::VectorXf Vappbl1 = Eigen::VectorXf::Zero(M);

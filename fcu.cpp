@@ -4,6 +4,9 @@
 #include <vector>
 #include <chrono>
 
+// Based on:
+// https://ieeexplore-ieee-org.tudelft.idm.oclc.org/document/9108292
+
 Eigen::VectorXf solve_fcu(const Eigen::MatrixXf& G, const Eigen::VectorXf& Vin, const float Rcol, const float Rrow, const float Rsense, bool print = false) {
     int M = G.rows();
     int N = G.cols();
@@ -143,16 +146,15 @@ Eigen::VectorXf solve_fcu(const Eigen::MatrixXf& G, const Eigen::VectorXf& Vin, 
     if (print) {
         std::cout << "ROWmatA:\n" << ROWmatA << std::endl << std::endl;
     }
-    
-    Eigen::SparseMatrix<float> COLROWmat = (COLmat + ROWmatA).sparseView();
 
     // NETmat is constructe as such: Gmat * (COLmat + ROWmatA)^-1, thus is a N x N*M matrix
-    // Eigen::MatrixXd NETmat = Gmat * COLROWmat.inverse();
+    // Eigen::MatrixXf NETmat = Gmat * (COLmat + ROWmatA).inverse();
 
     // Alternative:
     // Rewrite NEtmat = Gmat * (COLmat + ROWmatA)^-1 as (COLmat + ROWmatA)^T * NETmat^T = Gmat^T
     // Then use a solver to solve for NETmat^T
-    // Finally transpose to get NETmat
+    // Finally transpose to get NETmat    
+    Eigen::SparseMatrix<float> COLROWmat = (COLmat + ROWmatA).sparseView();
     Eigen::MatrixXf Gmat_t = Gmat.transpose();
     Eigen::SparseMatrix<float> Gmat_t_sparse = Gmat_t.sparseView();
 
@@ -259,7 +261,7 @@ int main(int argc, char* argv[]) {
 
         auto execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
         
-        // std::cout << "Execution time: " << execution_time << " ms" << std::endl;
+        std::cout << "Execution time: " << execution_time << " ms" << std::endl;
 
         total_time += execution_time;
     }
