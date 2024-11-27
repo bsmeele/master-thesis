@@ -16,7 +16,7 @@ std::vector<float> solve_cam(
     const float Rwl, const float Rbl,
     const bool print = false
     ) {
-    auto start_time = std::chrono::high_resolution_clock::now();
+    // auto start_time = std::chrono::high_resolution_clock::now();
 
     int M = G.rows();
     int N = G.cols();
@@ -29,10 +29,10 @@ std::vector<float> solve_cam(
     float Gwl = 1/Rwl;
     float Gbl = 1/Rbl;
 
-    auto timestamp1 = std::chrono::high_resolution_clock::now();
-    auto execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp1 - start_time).count();
-    std::cout << "Setup time: " << execution_time << " (ms)" << std::endl;
-    timestamp1 = std::chrono::high_resolution_clock::now();
+    // auto timestamp1 = std::chrono::high_resolution_clock::now();
+    // auto execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp1 - start_time).count();
+    // std::cout << "Setup time: " << execution_time << " (ms)" << std::endl;
+    // timestamp1 = std::chrono::high_resolution_clock::now();
 
     // Submatrix A
     Eigen::MatrixXf A = Eigen::MatrixXf::Zero(M*N, M*N);
@@ -56,10 +56,10 @@ std::vector<float> solve_cam(
         std::cout << "Submatrix A:\n" << A << std::endl << std::endl;
     }
 
-    auto timestamp2 = std::chrono::high_resolution_clock::now();
-    execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp2 - timestamp1).count();
-    std::cout << "Submatrix A time: " << execution_time << " (ms)" << std::endl;
-    timestamp2 = std::chrono::high_resolution_clock::now();
+    // auto timestamp2 = std::chrono::high_resolution_clock::now();
+    // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp2 - timestamp1).count();
+    // std::cout << "Submatrix A time: " << execution_time << " (ms)" << std::endl;
+    // timestamp2 = std::chrono::high_resolution_clock::now();
 
     // Submatrix B
     Eigen::MatrixXf B = Eigen::MatrixXf::Zero(M*N, M*N);
@@ -73,10 +73,10 @@ std::vector<float> solve_cam(
         std::cout << "Submatrix B:\n" << B << std::endl << std::endl;
     }
 
-    auto timestamp3 = std::chrono::high_resolution_clock::now();
-    execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp3 - timestamp2).count();
-    std::cout << "Submatrix B time: " << execution_time << " (ms)" << std::endl;
-    timestamp3 = std::chrono::high_resolution_clock::now();
+    // auto timestamp3 = std::chrono::high_resolution_clock::now();
+    // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp3 - timestamp2).count();
+    // std::cout << "Submatrix B time: " << execution_time << " (ms)" << std::endl;
+    // timestamp3 = std::chrono::high_resolution_clock::now();
 
     // Submatrix C
     Eigen::MatrixXf C = B;
@@ -85,10 +85,10 @@ std::vector<float> solve_cam(
         std::cout << "Submatrix C:\n" << C << std::endl << std::endl;
     }
 
-    auto timestamp4 = std::chrono::high_resolution_clock::now();
-    execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp4 - timestamp3).count();
-    std::cout << "Submatrix C time: " << execution_time << " (ms)" << std::endl;
-    timestamp4 = std::chrono::high_resolution_clock::now();
+    // auto timestamp4 = std::chrono::high_resolution_clock::now();
+    // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp4 - timestamp3).count();
+    // std::cout << "Submatrix C time: " << execution_time << " (ms)" << std::endl;
+    // timestamp4 = std::chrono::high_resolution_clock::now();
 
     // Submatrix D
     Eigen::MatrixXf D = Eigen::MatrixXf::Zero(M*N, M*N);
@@ -118,10 +118,10 @@ std::vector<float> solve_cam(
     G_ABCD.block(M*N, 0, C.rows(), C.cols()) = C;
     G_ABCD.block(M*N, M*N, D.rows(), D.cols()) = D;
 
-    auto timestamp5 = std::chrono::high_resolution_clock::now();
-    execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp5 - timestamp4).count();
-    std::cout << "Submatrix D time: " << execution_time << " (ms)" << std::endl;
-    timestamp5 = std::chrono::high_resolution_clock::now();
+    // auto timestamp5 = std::chrono::high_resolution_clock::now();
+    // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp5 - timestamp4).count();
+    // std::cout << "Submatrix D time: " << execution_time << " (ms)" << std::endl;
+    // timestamp5 = std::chrono::high_resolution_clock::now();
 
     if (print) {
         std::cout << "G_ABCD:\n" << G_ABCD << std::endl << std::endl;
@@ -148,10 +148,10 @@ std::vector<float> solve_cam(
         }
     }
 
-    auto timestamp6 = std::chrono::high_resolution_clock::now();
-    execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp6 - timestamp5).count();
-    std::cout << "Matrix E time: " << execution_time << " (ms)" << std::endl;
-    timestamp6 = std::chrono::high_resolution_clock::now();
+    // auto timestamp6 = std::chrono::high_resolution_clock::now();
+    // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp6 - timestamp5).count();
+    // std::cout << "Matrix E time: " << execution_time << " (ms)" << std::endl;
+    // timestamp6 = std::chrono::high_resolution_clock::now();
     
     if (print) {
         std::cout << "E:\n" << E << std::endl << std::endl;
@@ -167,10 +167,10 @@ std::vector<float> solve_cam(
     M_mat.block(0, 0, M_top_left.rows(), M_top_left.cols()) = M_top_left;
     M_mat.block(M*N, M*N, M_bottom_right.rows(), M_bottom_right.cols()) = M_bottom_right;
 
-    auto timestamp7 = std::chrono::high_resolution_clock::now();
-    execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp7 - timestamp6).count();
-    std::cout << "M time: " << execution_time << " (ms)" << std::endl;
-    timestamp7 = std::chrono::high_resolution_clock::now();
+    // auto timestamp7 = std::chrono::high_resolution_clock::now();
+    // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp7 - timestamp6).count();
+    // std::cout << "M time: " << execution_time << " (ms)" << std::endl;
+    // timestamp7 = std::chrono::high_resolution_clock::now();
 
     if (print) {
         std::cout << "M:\n" << M_mat << std::endl << std::endl;
@@ -178,10 +178,10 @@ std::vector<float> solve_cam(
 
     Eigen::MatrixXf M_inv = M_mat.inverse();
 
-    auto timestamp8 = std::chrono::high_resolution_clock::now();
-    execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp8 - timestamp7).count();
-    std::cout << "M inverse time: " << execution_time << " (ms)" << std::endl;
-    timestamp8 = std::chrono::high_resolution_clock::now();
+    // auto timestamp8 = std::chrono::high_resolution_clock::now();
+    // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp8 - timestamp7).count();
+    // std::cout << "M inverse time: " << execution_time << " (ms)" << std::endl;
+    // timestamp8 = std::chrono::high_resolution_clock::now();
 
     if (print) {
         std::cout << "M inverse:\n" << M_inv << std::endl << std::endl;
@@ -196,10 +196,10 @@ std::vector<float> solve_cam(
     N_mat.block(M*N, 0, C.rows(), C.cols()) = -C;
     N_mat.block(M*N, M*N, N_bottom_right.rows(), N_bottom_right.cols()) = N_bottom_right;
 
-    auto timestamp9 = std::chrono::high_resolution_clock::now();
-    execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp9 - timestamp8).count();
-    std::cout << "N time: " << execution_time << " (ms)" << std::endl;
-    timestamp9 = std::chrono::high_resolution_clock::now();
+    // auto timestamp9 = std::chrono::high_resolution_clock::now();
+    // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp9 - timestamp8).count();
+    // std::cout << "N time: " << execution_time << " (ms)" << std::endl;
+    // timestamp9 = std::chrono::high_resolution_clock::now();
 
     if (print) {
         std::cout << "N:\n" << N_mat << std::endl << std::endl;
@@ -218,10 +218,10 @@ std::vector<float> solve_cam(
         } 
     }
 
-    auto timestamp10 = std::chrono::high_resolution_clock::now();
-    execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp10 - timestamp9).count();
-    std::cout << "Solve time: " << execution_time << " (ms)" << std::endl;
-    timestamp10 = std::chrono::high_resolution_clock::now();
+    // auto timestamp10 = std::chrono::high_resolution_clock::now();
+    // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp10 - timestamp9).count();
+    // std::cout << "Solve time: " << execution_time << " (ms)" << std::endl;
+    // timestamp10 = std::chrono::high_resolution_clock::now();
 
     // V = G_ABCD.colPivHouseholderQr().solve(E);
 
@@ -241,9 +241,9 @@ std::vector<float> solve_cam(
         Iout.push_back(Ioutj);
     }
 
-    auto timestamp11 = std::chrono::high_resolution_clock::now();
-    execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp11 - timestamp10).count();
-    std::cout << "Iout time: " << execution_time << " (ms)" << std::endl;
+    // auto timestamp11 = std::chrono::high_resolution_clock::now();
+    // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp11 - timestamp10).count();
+    // std::cout << "Iout time: " << execution_time << " (ms)" << std::endl;
 
     return Iout;
 }

@@ -185,15 +185,20 @@ Eigen::VectorXf solve_fcu(const Eigen::MatrixXf& G, const Eigen::VectorXf& Vin, 
     Eigen::MatrixXf Gmat_t = Gmat.transpose();
     Eigen::SparseMatrix<float> Gmat_t_sparse = Gmat_t.sparseView();
 
+    // auto timestamp6 = std::chrono::high_resolution_clock::now();
+    // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp6 - timestamp5).count();
+    // std::cout << "Solver setup time: " << execution_time << " (ms)" << std::endl;
+    // timestamp6 = std::chrono::high_resolution_clock::now();
+
     Eigen::BiCGSTAB<Eigen::SparseMatrix<float>> solver;
 
     solver.compute(COLROWmat.transpose());
     Eigen::SparseMatrix<float> NETmat = solver.solve(Gmat_t_sparse).transpose();
 
-    // auto timestamp6 = std::chrono::high_resolution_clock::now();
-    // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp6 - timestamp5).count();
+    // auto timestamp7 = std::chrono::high_resolution_clock::now();
+    // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp7 - timestamp6).count();
     // std::cout << "Solve time: " << execution_time << " (ms)" << std::endl;
-    // timestamp6 = std::chrono::high_resolution_clock::now();
+    // timestamp7 = std::chrono::high_resolution_clock::now();
 
     if (print) {
         std::cout << "NETmat:\n" << NETmat << std::endl << std::endl;
@@ -208,10 +213,10 @@ Eigen::VectorXf solve_fcu(const Eigen::MatrixXf& G, const Eigen::VectorXf& Vin, 
         }
     }
 
-    // auto timestamp7 = std::chrono::high_resolution_clock::now();
-    // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp7 - timestamp6).count();
+    // auto timestamp8 = std::chrono::high_resolution_clock::now();
+    // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp8 - timestamp7).count();
     // std::cout << "NETmatC time: " << execution_time << " (ms)" << std::endl;
-    // timestamp7 = std::chrono::high_resolution_clock::now();
+    // timestamp8 = std::chrono::high_resolution_clock::now();
 
     if (print) {
         std::cout << "NETmatC:\n" << NETmatC << std::endl << std::endl;
@@ -219,10 +224,9 @@ Eigen::VectorXf solve_fcu(const Eigen::MatrixXf& G, const Eigen::VectorXf& Vin, 
 
     Eigen::VectorXf Iout = NETmatC * Vin;
 
-    // auto timestamp8 = std::chrono::high_resolution_clock::now();
-    // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp8 - timestamp7).count();
+    // auto end_time = std::chrono::high_resolution_clock::now();
+    // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - timestamp8).count();
     // std::cout << "Iout time: " << execution_time << " (ms)" << std::endl;
-    // timestamp8 = std::chrono::high_resolution_clock::now();
 
     return Iout;
 }
@@ -258,15 +262,15 @@ int main(int argc, char* argv[]) {
         // Construct G matrix with random values
         Eigen::MatrixXf R = Eigen::MatrixXf::Random(M, N);
         R = (R + Eigen::MatrixXf::Constant(M, N, 1.0)) * 0.5 * (Rmax - Rmin) + Eigen::MatrixXf::Constant(M, N, Rmin);
-        // R(0, 0) = 10.;
-        // R(0, 1) = 15.;
-        // R(0, 2) = 20.;
-        // R(1, 0) = 25.;
-        // R(1, 1) = 30.;
-        // R(1, 2) = 35.;
-        // R(2, 0) = 40.;
-        // R(2, 1) = 45.;
-        // R(2, 2) = 50.;
+        R(0, 0) = 10.;
+        R(0, 1) = 15.;
+        R(0, 2) = 20.;
+        R(1, 0) = 25.;
+        R(1, 1) = 30.;
+        R(1, 2) = 35.;
+        R(2, 0) = 40.;
+        R(2, 1) = 45.;
+        R(2, 2) = 50.;
 
         if (print) {
             std::cout << "R:\n" << R << std::endl << std::endl;
@@ -281,9 +285,9 @@ int main(int argc, char* argv[]) {
         // Construct Vin with random values
         Eigen::VectorXf Vin = Eigen::VectorXf::Random(M);
         Vin = (Vin.array() > 0.5).select(Eigen::VectorXf::Constant(M, Vdd), Eigen::VectorXf::Zero(M));
-        // Vin(0) = 5;
-        // Vin(1) = 7;
-        // Vin(2) = 9;
+        Vin(0) = 5;
+        Vin(1) = 7;
+        Vin(2) = 9;
 
         if (print) {
             std::cout << "Vin:\n" << Vin << std::endl << std::endl;
