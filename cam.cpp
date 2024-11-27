@@ -11,7 +11,7 @@ std::vector<float> solve_cam(
     const Eigen::MatrixXf& G,
     const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,
     const Eigen::VectorXf& Vappbl1, const Eigen::VectorXf& Vappbl2,
-    Eigen::VectorXf& V,
+    Eigen::VectorXf& V, Eigen::SparseMatrix<float>& G_ABCD,
     const float Rswl1, const float Rswl2, const float Rsbl1, const float Rsbl2,
     const float Rwl, const float Rbl,
     const bool print = false
@@ -29,7 +29,7 @@ std::vector<float> solve_cam(
     float Gwl = 1/Rwl;
     float Gbl = 1/Rbl;
 
-    Eigen::SparseMatrix<float> G_ABCD(2*M*N, 2*M*N);
+    // Eigen::SparseMatrix<float> G_ABCD(2*M*N, 2*M*N);
 
     // auto timestamp1 = std::chrono::high_resolution_clock::now();
     // auto execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp1 - start_time).count();
@@ -39,17 +39,18 @@ std::vector<float> solve_cam(
     // Submatrix A
     for (int i = 0; i < M; i++) {
         for (int j = 0; j < N; j++) {
-            if (j == 0) {
-                G_ABCD.insert(i*N + j, i*N + j) = Gswl1 + G(i, j) + Gwl;
-                G_ABCD.insert(i*N + j, i*N + j+1) = -Gwl;
-            } else if (j == N-1) {
-                G_ABCD.insert(i*N + j, i*N + j) = Gswl2 + G(i, j) + Gwl;
-                G_ABCD.insert(i*N + j, i*N + j-1) = -Gwl;
-            } else {
-                G_ABCD.insert(i*N + j, i*N+j) = G(i, j) + 2*Gwl;
-                G_ABCD.insert(i*N + j, i*N + j-1) = -Gwl;
-                G_ABCD.insert(i*N + j, i*N + j+1) = -Gwl;
-            }
+            G_ABCD.coeffRef(i*N + j, i*N + j) += G(i, j);
+            // if (j == 0) {
+            //     G_ABCD.insert(i*N + j, i*N + j) = Gswl1 + G(i, j) + Gwl;
+            //     G_ABCD.insert(i*N + j, i*N + j+1) = -Gwl;
+            // } else if (j == N-1) {
+            //     G_ABCD.insert(i*N + j, i*N + j) = Gswl2 + G(i, j) + Gwl;
+            //     G_ABCD.insert(i*N + j, i*N + j-1) = -Gwl;
+            // } else {
+            //     G_ABCD.insert(i*N + j, i*N+j) = G(i, j) + 2*Gwl;
+            //     G_ABCD.insert(i*N + j, i*N + j-1) = -Gwl;
+            //     G_ABCD.insert(i*N + j, i*N + j+1) = -Gwl;
+            // }
         }
     }
 
@@ -61,7 +62,8 @@ std::vector<float> solve_cam(
     // Submatrix B
     for (int i = 0; i < M; i++) {
         for (int j = 0; j < N; j++) {
-            G_ABCD.insert(i*N + j, i*N + j + M*N) = -G(i, j);
+            // G_ABCD.insert(i*N + j, i*N + j + M*N) = -G(i, j);
+            G_ABCD.coeffRef(i*N + j, i*N + j + M*N) += -G(i, j);
         }
     }
 
@@ -73,7 +75,8 @@ std::vector<float> solve_cam(
     // Submatrix C
     for (int i = 0; i < M; i++) {
         for (int j = 0; j < N; j++) {
-            G_ABCD.insert(i*N + j + M*N, i*N + j) = G(i, j);
+            // G_ABCD.insert(i*N + j + M*N, i*N + j) = G(i, j);
+            G_ABCD.coeffRef(i*N + j + M*N, i*N + j) += G(i, j);
         }
     }
 
@@ -85,17 +88,18 @@ std::vector<float> solve_cam(
     // Submatrix D
     for (int i = 0; i < M; i++) {
         for (int j = 0; j < N; j++) {
-            if (i == 0) {
-                G_ABCD.insert(i*N + j + M*N, i*N + j + M*N) = -Gsbl1 + -G(i, j) + -Gbl;
-                G_ABCD.insert(i*N + j + M*N, (i+1)*N + j + M*N) = Gbl;
-            } else if (i == M-1) {
-                G_ABCD.insert(i*N + j + M*N, i*N + j + M*N) = -Gsbl2 + -G(i, j) + -Gbl;
-                G_ABCD.insert(i*N + j + M*N, (i-1)*N + j + M*N) = Gbl;
-            } else {
-                G_ABCD.insert(i*N + j + M*N, i*N + j + M*N) = -G(i, j) + -2*Gbl;
-                G_ABCD.insert(i*N + j + M*N, (i-1)*N + j + M*N) = Gbl;
-                G_ABCD.insert(i*N + j + M*N, (i+1)*N + j + M*N) = Gbl;
-            }
+            G_ABCD.coeffRef(i*N + j + M*N, i*N + j + M*N) += -G(i, j);
+            // if (i == 0) {
+            //     G_ABCD.insert(i*N + j + M*N, i*N + j + M*N) = -Gsbl1 + -G(i, j) + -Gbl;
+            //     G_ABCD.insert(i*N + j + M*N, (i+1)*N + j + M*N) = Gbl;
+            // } else if (i == M-1) {
+            //     G_ABCD.insert(i*N + j + M*N, i*N + j + M*N) = -Gsbl2 + -G(i, j) + -Gbl;
+            //     G_ABCD.insert(i*N + j + M*N, (i-1)*N + j + M*N) = Gbl;
+            // } else {
+            //     G_ABCD.insert(i*N + j + M*N, i*N + j + M*N) = -G(i, j) + -2*Gbl;
+            //     G_ABCD.insert(i*N + j + M*N, (i-1)*N + j + M*N) = Gbl;
+            //     G_ABCD.insert(i*N + j + M*N, (i+1)*N + j + M*N) = Gbl;
+            // }
         }
     }
 
@@ -167,10 +171,9 @@ std::vector<float> solve_cam(
         Iout.push_back(Ioutj);
     }
 
-    // auto timestamp8 = std::chrono::high_resolution_clock::now();
-    // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp8 - timestamp7).count();
+    // auto end_time = std::chrono::high_resolution_clock::now();
+    // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - timestamp7).count();
     // std::cout << "Iout time: " << execution_time << " (ms)" << std::endl;
-    // timestamp8 = std::chrono::high_resolution_clock::now();
 
     return Iout;
 }
@@ -189,18 +192,74 @@ int main(int argc, char* argv[]) {
     long long total_time = 0;
     Eigen::VectorXf V = Eigen::VectorXf::Zero(2*M*N);
 
+    float Rswl1 = 3.;
+    float Rswl2 = INFINITY;
+    float Rsbl1 = INFINITY;
+    float Rsbl2 = 5.;
+
+    float Rwl = 3.;
+    float Rbl = 2.;
+
+    float Gswl1 = 1/Rswl1;
+    float Gswl2 = 0;
+    float Gsbl1 = 0;
+    float Gsbl2 = 1/Rsbl2;
+
+    float Gwl = 1/Rwl;
+    float Gbl = 1/Rbl;
+
+    // Partially precompute G_ABCD based on the crossbar parasitics
+    Eigen::SparseMatrix<float> G_ABCD(2*M*N, 2*M*N);
+    // Submatrix A
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < N; j++) {
+            if (j == 0) {
+                G_ABCD.insert(i*N + j, i*N + j) = Gswl1 + Gwl;
+                G_ABCD.insert(i*N + j, i*N + j+1) = -Gwl;
+            } else if (j == N-1) {
+                G_ABCD.insert(i*N + j, i*N + j) = Gswl2 + Gwl;
+                G_ABCD.insert(i*N + j, i*N + j-1) = -Gwl;
+            } else {
+                G_ABCD.insert(i*N + j, i*N+j) = 2*Gwl;
+                G_ABCD.insert(i*N + j, i*N + j-1) = -Gwl;
+                G_ABCD.insert(i*N + j, i*N + j+1) = -Gwl;
+            }
+        }
+    }
+    // Submatrix B
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < N; j++) {
+            G_ABCD.insert(i*N + j, i*N + j + M*N) = 0;
+        }
+    }
+    // Submatrix C
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < N; j++) {
+            G_ABCD.insert(i*N + j + M*N, i*N + j) = 0;
+        }
+    }
+    // Submatrix D
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < N; j++) {
+            if (i == 0) {
+                G_ABCD.insert(i*N + j + M*N, i*N + j + M*N) = -Gsbl1 + -Gbl;
+                G_ABCD.insert(i*N + j + M*N, (i+1)*N + j + M*N) = Gbl;
+            } else if (i == M-1) {
+                G_ABCD.insert(i*N + j + M*N, i*N + j + M*N) = -Gsbl2 + -Gbl;
+                G_ABCD.insert(i*N + j + M*N, (i-1)*N + j + M*N) = Gbl;
+            } else {
+                G_ABCD.insert(i*N + j + M*N, i*N + j + M*N) = -2*Gbl;
+                G_ABCD.insert(i*N + j + M*N, (i-1)*N + j + M*N) = Gbl;
+                G_ABCD.insert(i*N + j + M*N, (i+1)*N + j + M*N) = Gbl;
+            }
+        }
+    }
+
+
     for (int i = 0; i < runs; i++) {
         float Rmin = 100.;
         float Rmax = 1000.;
         float Vdd = 5.;
-
-        float Rswl1 = 3.;
-        float Rswl2 = INFINITY;
-        float Rsbl1 = INFINITY;
-        float Rsbl2 = 5.;
-
-        float Rwl = 3.;
-        float Rbl = 2.;
 
         if (print) {
             std::cout << "Rswl1: " << Rswl1 << std::endl;
@@ -251,7 +310,7 @@ int main(int argc, char* argv[]) {
 
         auto start_time = std::chrono::high_resolution_clock::now();
 
-        std::vector<float> Iout = solve_cam(G, Vappwl1, Vappwl2, Vappbl1, Vappbl2, V, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, print);
+        std::vector<float> Iout = solve_cam(G, Vappwl1, Vappwl2, Vappbl1, Vappbl2, V, G_ABCD, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, print);
 
         auto end_time = std::chrono::high_resolution_clock::now();
 
