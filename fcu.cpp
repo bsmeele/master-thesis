@@ -174,6 +174,18 @@ Eigen::VectorXf solve_fcu(const Eigen::MatrixXf& G, const Eigen::VectorXf& Vin, 
         std::cout << "ROWmatA:\n" << ROWmatA << std::endl << std::endl;
     }
 
+    if (print) {
+        auto colrowmat = COLmat + ROWmatA;
+        std::cout << "COLmat + ROWmatA:\n" << colrowmat << std::endl << std::endl;
+        int count = 0;
+        for (int i = 0; i < M*N; i++) {
+            for (int j = 0; j < M*N; j++) {
+                if (colrowmat(i, j) == 0) { count += 1; }
+            }
+        }
+        std::cout << count << "/" << M*N*M*N << " zero entries\n\n";
+    }
+
     // NETmat is constructe as such: Gmat * (COLmat + ROWmatA)^-1, thus is a N x N*M matrix
     // Eigen::MatrixXf NETmat = Gmat * (COLmat + ROWmatA).inverse();
 
@@ -201,7 +213,7 @@ Eigen::VectorXf solve_fcu(const Eigen::MatrixXf& G, const Eigen::VectorXf& Vin, 
     // timestamp7 = std::chrono::high_resolution_clock::now();
 
     if (print) {
-        std::cout << "NETmat:\n" << NETmat << std::endl << std::endl;
+        std::cout << "NETmat:\n" << NETmat.toDense() << std::endl << std::endl;
     }
 
     // ----- Step 6: Reduce Matrix Dimensions -----
