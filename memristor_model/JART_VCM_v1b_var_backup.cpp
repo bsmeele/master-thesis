@@ -112,9 +112,7 @@ class JART_VCM_v1b_var {
         double Rtheff;    // thermal resistance
         double V_prev;    // previous applied voltage, used to check for voltage crossings
 
-        void setFittingParameters() {
-
-        }
+        public:
 
         void updateFilamentArea() {
             A = M_PI * pow(rvar, 2);
@@ -137,6 +135,7 @@ class JART_VCM_v1b_var {
                 double W00 = (P_Q * P_H / (4 * M_PI)) * sqrt(zvo * Nreal * 1e26 / (mdiel * eps_eff));
                 double W0 = W00 / tanh(W00 / (P_K * Treal));
                 double epsprime = W00 / (W00 / (P_K * Treal) - tanh(W00 / (P_K * Treal)));
+
                 return -A * ((Arichardson * Treal) / P_K) * sqrt(M_PI * W00 * P_Q * (fabs(V_schottky) + phibn / pow(cosh(W00/(P_K * Treal)),2)))
                 * exp(-P_Q * phibn / W0) * (exp(P_Q * fabs(V_schottky) / epsprime) - 1);
             } else { // Schottky TE RESET direction
@@ -176,11 +175,11 @@ class JART_VCM_v1b_var {
                 double gamma = zvo * P_Q * E_ion * a / (M_PI * dWa * P_Q);
                 double dWamin = dWa * P_Q * (sqrt(1 - pow(gamma, 2)) - gamma * M_PI/2 + gamma * asin(gamma));
                 double dWamax = dWa * P_Q * (sqrt(1 - pow(gamma, 2)) + gamma * M_PI/2 + gamma * asin(gamma));
-                return zvo * P_Q * cvo * a * nyo * A * (exp(-dWamin / (P_K * Treal)) - exp(dWamax / (P_K * Treal))) * Flim;
+                return zvo * P_Q * cvo * a * nyo * A * (exp(-dWamin / (P_K * Treal)) - exp(-dWamax / (P_K * Treal))) * Flim;
             }
         }
 
-    public:
+    // public:
         JART_VCM_v1b_var() {
             Nreal = Ninit;
             Ninitreal = Ninit;
@@ -204,15 +203,23 @@ class JART_VCM_v1b_var {
                 Nold = Nreal;
                 trig = 1;
             }
-            V_prev = V_applied;
+            V_prev = 0;
 
             double V_schottky = V_applied;
             double I_schottky;
             double V_discplugserial;
 
             while (true) {
+                std::cout << "V applied: " << V_applied << std::endl;
                 std::cout << "V schottky: " << V_schottky << std::endl;
-                if (std::isinf(V_schottky)) { int test = 1 / 0; }
+                if (std::isinf(V_schottky)) {
+                    std::cout << "inf detected" << std::endl;
+                    int test = 1 / 0;
+                }
+                if (std::isnan(V_schottky)) {
+                    std::cout << "nan detected" << std::endl;
+                    int test = 1 / 0;
+                }
 
                 I_schottky = computeSchottkyCurrent(V_schottky);
 
@@ -224,15 +231,19 @@ class JART_VCM_v1b_var {
 
                 std::cout << "V discplugserial: " << V_discplugserial << std::endl;
 
+                std::cout << "Criterion: " << fabs((V_applied - V_discplugserial) - V_schottky) << std::endl;
                 double criterion = fabs((V_applied - V_discplugserial) - V_schottky);
                 if (criterion < 1e-6) {
                     V_schottky = V_applied - V_discplugserial;
                     break;
                 }
-                V_schottky = V_applied - V_discplugserial;
+
+                // V_schottky = V_applied - V_discplugserial;
+                V_schottky = (V_schottky + (V_applied - V_discplugserial)) / 2;
             }
 
             double I_ion = computeIonCurrent(V_applied, V_schottky, V_discplugserial);
+            std::cout << "I_ion: " << I_ion << std::endl;
             updateConcentration(I_ion, dt);
             updateTemperature(V_schottky, V_discplugserial, I_schottky);
 
@@ -261,6 +272,7 @@ int main() {
     JART_VCM_v1b_var memristor = JART_VCM_v1b_var();
 
     const double dt = 1e-3;
+    // const double dt = 0.1;
 
     std::vector<std::array<double, 2>> V_wave;
     V_wave.push_back({0, 0});
@@ -272,13 +284,18 @@ int main() {
     double V = V_wave[0][0];
     double t = V_wave[0][1];
 
+    // double V_test = -0.001;
+    // double I_test;
+    // I_test = memristor.computeSchottkyCurrent(V_test);
+    // std::cout << "V: " << V_test << ", I: " << I_test << std::endl;
+
     for (int i = 1; i < V_wave.size(); i++) {
         double dv = (V_wave[i][0] - V) / ((V_wave[i][1] - t) / dt);
         while (t < V_wave[i][1]) {
             double I;
-            // std::cout << t << ": " << V << " V";
             I = memristor.apply_voltage(V, dt);
-            // std::cout << ", " << I << " A" << std::endl;
+            // I = memristor.apply_voltage(-0.1, 0);
+            std::cout << t << " s" << ": " << V << " V" << ", " << I << " A" << std::endl;
             if (std::isnan(I)) { return 1; }
             // outFile << I << std::endl;
             V += dv;
