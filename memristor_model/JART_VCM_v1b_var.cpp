@@ -59,6 +59,7 @@ const double P_H = 6.626e-34;     // Planck constant [Js]
 
 class JART_VCM_v1b_var {
     private:
+    public:
         // ----- Pyisical constants do not change! -----
         const double Arichardson = 6.01e5; // Richardson's constant [A/m^2K^2]
         const double mdiel = 9.10938e-31;  // electron rest mass [kg]
@@ -94,7 +95,6 @@ class JART_VCM_v1b_var {
         double epsphib_eff; // hafnium oxide permittivity related to image force barrier lowering
 
         // ----- State variable -----
-        double Nreal; // oxygen vacancy concentration of the disc region [nm]
 
         // ----- Other internal variables -----
         int trig;        // Used to signify certain voltage crossings and limit the state variable
@@ -112,7 +112,7 @@ class JART_VCM_v1b_var {
         double Rtheff;    // thermal resistance
         double V_prev;    // previous applied voltage, used to check for voltage crossings
 
-        public:
+        double Nreal; // oxygen vacancy concentration of the disc region [nm]
 
         void updateFilamentArea() {
             A = M_PI * pow(rvar, 2);
@@ -139,6 +139,7 @@ class JART_VCM_v1b_var {
                 return -A * ((Arichardson * Treal) / P_K) * sqrt(M_PI * W00 * P_Q * (fabs(V_schottky) + phibn / pow(cosh(W00/(P_K * Treal)),2)))
                 * exp(-P_Q * phibn / W0) * (exp(P_Q * fabs(V_schottky) / epsprime) - 1);
             } else { // Schottky TE RESET direction
+                // std::cout << exp(P_Q / (P_K * Treal) * V_schottky) << std::endl;
                 return A * Arichardson * pow(Treal, 2) * exp(-phibn * P_Q / (P_K * Treal)) * (exp(P_Q / (P_K * Treal) * V_schottky) - 1);
             }
         }
@@ -151,7 +152,10 @@ class JART_VCM_v1b_var {
 
         void updateConcentration(double I_ion, double dt) {
             double Nchange = (-trig / (A * lvar * 1e-9 * P_Q * zvo) * I_ion / 1e26) * dt;
-            Nreal = Ninitreal + Nchange;
+            // Nreal = Ninitreal + Nchange;
+            Nreal += Nchange;
+            if (Nreal > Ndiscmax) { Nreal = Ndiscmax; }
+            else if (Nreal < Ndiscmin) { Nreal = Ndiscmin; }
         }
 
         double computeIonCurrent(double V_applied, double V_schottky, double V_discplugserial) {
@@ -192,6 +196,7 @@ class JART_VCM_v1b_var {
             eps_eff = eps * P_EPS0;
             epsphib_eff = epsphib * P_EPS0;
             updateFilamentArea();
+            updateResistance(0);
             updateTemperature(0, 0, 0);
         }
 
@@ -205,45 +210,75 @@ class JART_VCM_v1b_var {
             }
             V_prev = 0;
 
-            double V_schottky = V_applied;
+            double V_low = 0;
+            double V_high = V_applied;
+
+            double V_schottky;
             double I_schottky;
             double V_discplugserial;
 
+            double tresh = 5;
+            float a = 0.1;
+            int i = 0;
             while (true) {
-                std::cout << "V applied: " << V_applied << std::endl;
-                std::cout << "V schottky: " << V_schottky << std::endl;
-                if (std::isinf(V_schottky)) {
+                V_schottky = (V_low + V_high) / 2;
+                if (i > 1e3) {
+                    std::cout << "Iteration limit reached" << std::endl;
+                    int test = 1/0;
+                }
+                if (V_applied > tresh) {
+                    std::cout << "V applied: " << V_applied << std::endl;
+                    std::cout << "V schottky: " << V_schottky << std::endl;
+                }
+                if (std::isinf(V_schottky) || std::isinf(I_schottky) || std::isinf(V_discplugserial)) {
                     std::cout << "inf detected" << std::endl;
                     int test = 1 / 0;
                 }
-                if (std::isnan(V_schottky)) {
+                if (std::isnan(V_schottky) || std::isnan(I_schottky) || std::isnan(V_discplugserial)) {
                     std::cout << "nan detected" << std::endl;
                     int test = 1 / 0;
                 }
 
                 I_schottky = computeSchottkyCurrent(V_schottky);
 
-                std::cout << "I schottky: " << I_schottky << std::endl;
+                if (V_applied > tresh) {
+                    std::cout << "I schottky: " << I_schottky << std::endl;
+                }
 
                 updateResistance(I_schottky);
 
                 V_discplugserial = (Rdisc + Rplug + Rseries) * I_schottky;
 
-                std::cout << "V discplugserial: " << V_discplugserial << std::endl;
-
-                std::cout << "Criterion: " << fabs((V_applied - V_discplugserial) - V_schottky) << std::endl;
-                double criterion = fabs((V_applied - V_discplugserial) - V_schottky);
-                if (criterion < 1e-6) {
-                    V_schottky = V_applied - V_discplugserial;
-                    break;
+                if (V_applied > tresh) {
+                    std::cout << "V discplugserial: " << V_discplugserial << std::endl;
+                    std::cout << "Criterion: " << fabs((V_applied - V_discplugserial) - V_schottky) << std::endl;
                 }
 
-                // V_schottky = V_applied - V_discplugserial;
-                V_schottky = (V_schottky + (V_applied - V_discplugserial)) / 2;
+                double err = V_applied - V_discplugserial - V_schottky;
+                if (fabs(err) < 1e-6) { break; }
+                if (V_applied < 0) {
+                    if (err < 0) { V_low = V_schottky; }
+                    else { V_high = V_schottky; }
+                } else {
+                    if (err > 0) { V_low = V_schottky; }
+                    else { V_high = V_schottky; }
+                }
+
+                if (V_applied > tresh) {
+                    std::cout << "V_applied - V_discplugserial: " << V_applied - V_discplugserial << std::endl;
+                }
+
+                i += 1;
+                
+                if (V_applied > tresh) {
+                    std::cout << std::endl;
+                }
             }
 
             double I_ion = computeIonCurrent(V_applied, V_schottky, V_discplugserial);
-            std::cout << "I_ion: " << I_ion << std::endl;
+            if (V_applied > tresh) {
+                std::cout << "I_ion: " << I_ion << std::endl;
+            }
             updateConcentration(I_ion, dt);
             updateTemperature(V_schottky, V_discplugserial, I_schottky);
 
@@ -262,12 +297,12 @@ int main() {
     // Simulation time of 8 seconds
     // Maximum step size of 3 ms
 
-    // std::ofstream outFile("Iout.txt");
+    std::ofstream outFile("out.txt");
 
-    // if (!outFile) {
-    //     std::cout << "No out file" << std::endl;
-    //     return 1;
-    // }
+    if (!outFile) {
+        std::cout << "No out file" << std::endl;
+        return 1;
+    }
 
     JART_VCM_v1b_var memristor = JART_VCM_v1b_var();
 
@@ -284,9 +319,11 @@ int main() {
     double V = V_wave[0][0];
     double t = V_wave[0][1];
 
-    // double V_test = -0.001;
+    // double V_test = 0.626001;
     // double I_test;
     // I_test = memristor.computeSchottkyCurrent(V_test);
+    // std::cout << "V: " << V_test << ", I: " << I_test << std::endl;
+    // I_test = memristor.computeSchottkyCurrent(V_test-0.1);
     // std::cout << "V: " << V_test << ", I: " << I_test << std::endl;
 
     for (int i = 1; i < V_wave.size(); i++) {
@@ -294,15 +331,13 @@ int main() {
         while (t < V_wave[i][1]) {
             double I;
             I = memristor.apply_voltage(V, dt);
-            // I = memristor.apply_voltage(-0.1, 0);
-            std::cout << t << " s" << ": " << V << " V" << ", " << I << " A" << std::endl;
+            // std::cout << t << "s" << ": " << V << " V" << ", " << I << " A, " << "N: " << memristor.Nreal << std::endl;
             if (std::isnan(I)) { return 1; }
-            // outFile << I << std::endl;
+            outFile << t << " " << V << " " << I << " " << memristor.Nreal << std::endl;
             V += dv;
             t += dt;
         }
     }
 
-
-    // outFile.close();
+    outFile.close();
 }
