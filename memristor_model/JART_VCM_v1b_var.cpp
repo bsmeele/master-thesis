@@ -147,7 +147,7 @@ class JART_VCM_v1b_var {
         void updateResistance(double I_discplugserial) {
             Rdisc = lvar * 1e-9 / (Nreal * 1e26 * zvo * P_Q * un * A);
             Rplug = ((lcell - lvar) * 1e-9 / (Nplug * 1e26 * zvo * P_Q * un * A));
-            Rseries = RTiOx = R0 * (1 + R0 * alphaline * pow(I_discplugserial, 2) * Rthline);
+            Rseries = RTiOx + R0 * (1 + R0 * alphaline * pow(I_discplugserial, 2) * Rthline);
         }
 
         void updateConcentration(double I_ion, double dt) {
@@ -208,7 +208,7 @@ class JART_VCM_v1b_var {
                 Nold = Nreal;
                 trig = 1;
             }
-            V_prev = 0;
+            V_prev = V_applied;
 
             double V_low = 0;
             double V_high = V_applied;
@@ -218,7 +218,6 @@ class JART_VCM_v1b_var {
             double V_discplugserial;
 
             double tresh = 5;
-            float a = 0.1;
             int i = 0;
             while (true) {
                 V_schottky = (V_low + V_high) / 2;
@@ -319,21 +318,23 @@ int main() {
     double V = V_wave[0][0];
     double t = V_wave[0][1];
 
-    // double V_test = 0.626001;
+    // memristor.Nreal = 20;
+    // double V_test = 0.160001;
     // double I_test;
     // I_test = memristor.computeSchottkyCurrent(V_test);
     // std::cout << "V: " << V_test << ", I: " << I_test << std::endl;
-    // I_test = memristor.computeSchottkyCurrent(V_test-0.1);
-    // std::cout << "V: " << V_test << ", I: " << I_test << std::endl;
+    // I_test = memristor.computeSchottkyCurrent(V_test-0.01);
+    // std::cout << "V: " << V_test-0.01 << ", I: " << I_test << std::endl;
 
     for (int i = 1; i < V_wave.size(); i++) {
+        std::cout << i << std::endl;
         double dv = (V_wave[i][0] - V) / ((V_wave[i][1] - t) / dt);
         while (t < V_wave[i][1]) {
             double I;
             I = memristor.apply_voltage(V, dt);
             // std::cout << t << "s" << ": " << V << " V" << ", " << I << " A, " << "N: " << memristor.Nreal << std::endl;
             if (std::isnan(I)) { return 1; }
-            outFile << t << " " << V << " " << I << " " << memristor.Nreal << std::endl;
+            outFile << t << " " << V << " " << I << " " << memristor.Nreal << " " << memristor.Treal << " " << (V - (memristor.Rdisc + memristor.Rplug + memristor.Rseries) * I)/I << " " << memristor.Rdisc << " " << memristor.Rplug << " " << memristor.Rseries << std::endl;
             V += dv;
             t += dt;
         }
