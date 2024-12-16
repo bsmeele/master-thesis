@@ -52,6 +52,7 @@ def main():
     plt.subplot(2, 2, 2)
     plt.plot(t, N, '-', markersize=2)
     plt.yscale('log')
+    plt.xlim(0, 6)
     plt.title('Oxygen vacancy concentration of the disc')
     plt.xlabel('Time (s)')
     plt.ylabel('Disc Concentration')
@@ -60,6 +61,7 @@ def main():
 
     plt.subplot(2, 2, 3)
     plt.plot(t, T, '-', markersize=2)
+    plt.xlim(0, 6)
     plt.title('Temperature')
     plt.xlabel('Time (s)')
     plt.ylabel('Temperature (K)')
