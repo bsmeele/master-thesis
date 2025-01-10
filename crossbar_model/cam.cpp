@@ -1,20 +1,18 @@
+#include "cam.h"
+
 #include <iostream>
-#include <Eigen/Dense>
-#include <Eigen/Sparse>
-#include <vector>
-#include <chrono>
 
 // Based on:
 // https://ieeexplore-ieee-org.tudelft.idm.oclc.org/document/6473873
 
-std::vector<float> solve_cam(
+Eigen::VectorXf solve_cam(
     const Eigen::MatrixXf& G,
+    const Eigen::VectorXf& V_guess, Eigen::SparseMatrix<float>& G_ABCD,
     const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,
     const Eigen::VectorXf& Vappbl1, const Eigen::VectorXf& Vappbl2,
-    Eigen::VectorXf& V, Eigen::SparseMatrix<float>& G_ABCD,
     const float Rswl1, const float Rswl2, const float Rsbl1, const float Rsbl2,
     const float Rwl, const float Rbl,
-    const bool print = false
+    const bool print
     ) {
     // auto start_time = std::chrono::high_resolution_clock::now();
 
@@ -147,8 +145,8 @@ std::vector<float> solve_cam(
     Eigen::BiCGSTAB<Eigen::SparseMatrix<float>> solver;
 
     solver.compute(G_ABCD);
-    V = solver.solve(E);
-    // V = solver.solveWithGuess(E.toDense(), V);
+    // Eigen::VectorXf V = solver.solve(E);
+    Eigen::VectorXf V = solver.solveWithGuess(E.toDense(), V_guess);
 
     // auto timestamp7 = std::chrono::high_resolution_clock::now();
     // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp7 - timestamp6).count();
@@ -162,44 +160,29 @@ std::vector<float> solve_cam(
     }
 
     // Calculate Iout
-    std::vector<float> Iout;
-    for (int j = 0; j < N; j++) {
-        float Ioutj = 0;
-        for (int i = 0; i < M; i++) {
-            Ioutj += (V(i*N + j) - V(i*N + j + M*N)) * G(i,j);
-        }
-        Iout.push_back(Ioutj);
-    }
+    // std::vector<float> Iout;
+    // for (int j = 0; j < N; j++) {
+    //     float Ioutj = 0;
+    //     for (int i = 0; i < M; i++) {
+    //         Ioutj += (V(i*N + j) - V(i*N + j + M*N)) * G(i,j);
+    //     }
+    //     Iout.push_back(Ioutj);
+    // }
 
-    // auto end_time = std::chrono::high_resolution_clock::now();
-    // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - timestamp7).count();
-    // std::cout << "Iout time: " << execution_time << " (ms)" << std::endl;
+    // // auto end_time = std::chrono::high_resolution_clock::now();
+    // // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - timestamp7).count();
+    // // std::cout << "Iout time: " << execution_time << " (ms)" << std::endl;
 
-    return Iout;
+    // return Iout;
+
+    return V;
 }
 
-int main(int argc, char* argv[]) {
-    srand((unsigned int) time(0));
-
-    int M = (argc >= 2) ? std::atoi(argv[1]) : 16;
-    int N = (argc >= 3) ? std::atoi(argv[2]) : 16;
-
-    int runs = (argc >= 4) ? std::atoi(argv[3]) : 1;
-
-    bool print = false;
-    if (std::atoi(argv[4]) == 1) { print = true; }
-
-    long long total_time = 0;
-    Eigen::VectorXf V = Eigen::VectorXf::Zero(2*M*N);
-
-    float Rswl1 = 3.;
-    float Rswl2 = INFINITY;
-    float Rsbl1 = INFINITY;
-    float Rsbl2 = 5.;
-
-    float Rwl = 3.;
-    float Rbl = 2.;
-
+Eigen::SparseMatrix<float> partially_precompute_G_ABCD(
+    const int M, const int N,
+    const float Rswl1, const float Rswl2, const float Rsbl1, const float Rsbl2,
+    const float Rwl, const float Rbl
+) {
     float Gswl1 = 1/Rswl1;
     float Gswl2 = 0;
     float Gsbl1 = 0;
@@ -207,7 +190,7 @@ int main(int argc, char* argv[]) {
 
     float Gwl = 1/Rwl;
     float Gbl = 1/Rbl;
-
+        
     // Partially precompute G_ABCD based on the crossbar parasitics
     Eigen::SparseMatrix<float> G_ABCD(2*M*N, 2*M*N);
     // Submatrix A
@@ -255,80 +238,5 @@ int main(int argc, char* argv[]) {
         }
     }
 
-
-    for (int i = 0; i < runs; i++) {
-        float Rmin = 100.;
-        float Rmax = 1000.;
-        float Vdd = 5.;
-
-        if (print) {
-            std::cout << "Rswl1: " << Rswl1 << std::endl;
-            // std::cout << "Rswl2: " << Rswl2 << std::endl;
-            // std::cout << "Rsbl1: " << Rsbl1 << std::endl;
-            std::cout << "Rsbl2: " << Rsbl2 << std::endl;
-
-            std::cout << "Rwl: " << Rwl << std::endl;
-            std::cout << "Rbl: " << Rbl << std::endl << std::endl;
-        }
-
-        Eigen::MatrixXf R = Eigen::MatrixXf::Random(M, N);
-        R = (R + Eigen::MatrixXf::Constant(M, N, 1.0)) * 0.5 * (Rmax - Rmin) + Eigen::MatrixXf::Constant(M, N, Rmin);
-        // R = Eigen::MatrixXf::Zero(M, N);
-        R(0, 0) = 10.;
-        R(0, 1) = 15.;
-        R(0, 2) = 20.;
-        R(1, 0) = 25.;
-        R(1, 1) = 30.;
-        R(1, 2) = 35.;
-        R(2, 0) = 40.;
-        R(2, 1) = 45.;
-        R(2, 2) = 50.;
-
-        if (print) {
-            std::cout << "R:\n" << R << std::endl << std::endl;
-        }
-
-        Eigen::MatrixXf G = R.cwiseInverse();
-
-        if (print) {
-            std::cout << "G:\n" << G << std::endl << std::endl;
-        }
-
-        Eigen::VectorXf Vappwl1 = Eigen::VectorXf::Random(M);
-        Vappwl1 = (Vappwl1.array() > 0.5).select(Eigen::VectorXf::Constant(M, Vdd), Eigen::VectorXf::Zero(M));
-        Vappwl1(0) = 5;
-        Vappwl1(1) = 7;
-        Vappwl1(2) = 9;
-
-        Eigen::VectorXf Vappwl2 = Eigen::VectorXf::Zero(M);
-        Eigen::VectorXf Vappbl1 = Eigen::VectorXf::Zero(M);
-        Eigen::VectorXf Vappbl2 = Eigen::VectorXf::Zero(M);
-
-        if (print) {
-            std::cout << "Vappwl1:\n" << Vappwl1 << std::endl << std::endl;
-        }
-
-        auto start_time = std::chrono::high_resolution_clock::now();
-
-        std::vector<float> Iout = solve_cam(G, Vappwl1, Vappwl2, Vappbl1, Vappbl2, V, G_ABCD, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, print);
-
-        auto end_time = std::chrono::high_resolution_clock::now();
-
-        if (print) {
-            std::cout << "Iout:" << std::endl;
-            for (int j = 0; j < N; j++) {
-                std::cout << Iout[j] << std::endl;
-            }
-            std::cout << std::endl;
-        }
-
-        auto execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-        std::cout << "Execution time: " << execution_time << " (ms)" << std::endl;
-
-        total_time += execution_time;
-    }
-    
-    if (runs > 1) {
-        std::cout << "Average execution time: " << total_time/runs << " ms" << std::endl;
-    }
+    return G_ABCD;
 }
