@@ -75,7 +75,7 @@ class JART_VCM_v1b_var {
 
         void updateFilamentArea();
         void updateTemperature(double V_schottky, double V_discplugserial, double I_schottky);
-        double computeSchottkyCurrent(double V_schottky, bool print);
+        double computeSchottkyCurrent(double V_schottky, bool print = false);
         void updateResistance(double I_discplugserial);
         void updateConcentration(double I_ion, double dt);
         double computeIonCurrent(double V_applied, double V_schottky, double V_discplugserial);
@@ -103,4 +103,5 @@ class JART_VCM_v1b_var {
             V_solve_top = 0;
         }
         double apply_voltage(double V_applied, double dt);
+        double getResistance(double V_applied);
 };

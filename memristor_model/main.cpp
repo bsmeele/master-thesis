@@ -88,13 +88,53 @@ int main() {
             memristor.Nreal = i;
             if (i == 0) { memristor.Nreal = memristor.Ndiscmin; }
             double Iout = memristor.apply_voltage(v, 0);
-            outFile2 << v/Iout;
+            if (std::abs(Iout) < 1e-12) { outFile2 << memristor.Rdisc + memristor.Rplug + memristor.Rseries; }
+            else { outFile2 << v/Iout; }
             if (i < 20) { outFile2 << " "; }
         }
         outFile2 << std::endl;
     }
 
     outFile2.close();
+
+    std::ofstream outFile3("out3.txt");
+
+    if (!outFile3) {
+        std::cout << "No out file" << std::endl;
+        return 1;
+    }
+
+    outFile3 << "V Imin Imax V/Imin V/Imax" << std::endl;
+
+    memristor.Treal = memristor.T0;
+    for (double v = -.1; v <= .1; v += 1e-6) {
+        memristor.Nreal = memristor.Ndiscmin;
+        double Imin = memristor.computeSchottkyCurrent(v);
+        memristor.Nreal = memristor.Ndiscmax;
+        double Imax = memristor.computeSchottkyCurrent(v);
+        outFile3 << v << " " << Imin << " " << Imax << " " << v/Imin << " " << v/Imax << std::endl;
+    }
+
+    outFile3.close();
+
+    // memristor.Nreal = memristor.Ndiscmin;
+    // for (double v = 0; v <= 20.; v += 1e-1) {
+    //     // double I = memristor.computeSchottkyCurrent(v);
+    //     // if (std::isnan(I)) {
+    //     //     std::cout << v << " " << I << std::endl;
+    //     // }
+    //     double I = memristor.apply_voltage(v, 0);
+    //     std::cout << v << " " << I << " ";
+    //     std::cout << memristor.V_solve_bottom << " " << memristor.V_solve_top;
+    //     std::cout << std::endl;
+    // }
+
+    // memristor.Treal = memristor.T0;
+    // memristor.Nreal = memristor.Ndiscmin;
+    // double Iout = memristor.apply_voltage(-1e-6, 0);
+    // std::cout << Iout / -1e-6 << std::endl;
+    // Iout = memristor.apply_voltage(1e-6, 0);
+    // std::cout << Iout / 1e-6 << std::endl;
 
     // memristor.Nreal = memristor.Ndiscmax;
     // double I_test;

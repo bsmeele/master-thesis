@@ -6,7 +6,7 @@ set OUTPUT=RRAM_CA.exe
 
 REM Compile command
 echo Compiling...
-g++ -std=c++17 -g ^
+g++ -std=c++17 -O3 ^
 -I .\crossbar_model\eigen\ ^
 -I .\crossbar_model\ ^
 -I .\memristor_model\ ^

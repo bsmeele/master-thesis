@@ -9,6 +9,10 @@
 #include <chrono>
 #include <fstream>
 #include <array>
+#include <limits>
+// #include <cmath>
+
+float norm = 0;
 
 // The crossbar solver assumes all devices to be linear. However, the memristor model is nonlinear
 // This means some adaptations are required to combine the two
@@ -48,9 +52,234 @@
 //     Solve J(V) * dV = -F(V) with an iterative solver, and update V with Vnew = Vold + dV
 //     Use a dampening factor to avoid overshooting: Vnew = Vold + a * dV
 
+// Current issues (resolved):
+//   The Jacobian seems way too high, resulting in updates that are way too high, resulting in NANs from the memristors (which might be its own problem, but unrelated to what this solver should do)
+//   The values of the Jacobian are currently around 1e3/1e4, while Fj - Fv is around 1e-3/1e-2 for a delta of 1e-6
+//   The calculation method seems to be correct, and with the delta and the Fj-Fv values, the high Jacobian values do somewhat make sense
+//   One option is that the linear solver is sensitive/inaccurate to small changes
+//   Or the memristor conductivity is sensitive/inaccurate to small changes
+//   My current best guess is with the way I'm calculating the conductivity of the memristors. It is currently calculated as I/V which means it's very unstable around V=0
+//   Even with a guard for v=0, it is still very unstable in that region
+//   After further studying the code, this might not be the only issue.
+//   For now I have set the initial guess to the crossbar voltages, meaning that the solver won't start around the 0 instability (this seems to be a better guess anyway)
+//   This makes it so the solver is able to go through a few iterations before it hits a NAN. However, the norm if F(V) is only increasing suggesting further issues
+//   So apperantly adjusting the delta to 1e-3 for the Jacobian calculation fixes everything and it works now
+
+// The Newton-Raphson method is implemented but has some issues:
+//   It is a lot slower than fixed point
+//   It is a little less accurate than fixed point
+// These could be all due to the method of Jacobian calculation
+// It uses the finite difference method with a delta of 1e-3
+// Finite distances is obviously very slow since the Jacobian has many elements
+// The delta could also be too large leading to the loss of accuracy for the algorithm, but smaller deltas seem to be unstable
+// One possible option to reduce the execution time is to calculate the Jacobian iteratively with something like the Broyden's Method
+// Since the Jacobian is calculated with finite differences and a somewhat large delta, it might not even loose that much accuracy
+// Turns out Broyden is faster but also somewhat slow, it is also slightly more accurate
+// Using an initial Jacobian equal to the identity matrix seems to slightly increase accuracy and increases performance over partial differences
+// My best guess as to why it's still somewhat slow is the dV solve method.
+// However, Broyden's method should also work with the inverse of the Jacobian, which would resolve this
+// I've tested this inverse method and it seems to be faster but lose significant accuracy. Additionally, it does not work (yet) for 16x16 and up
+
+// Currently I have implemented the fixed point, Newton-Raphson, Broyden, and inverse Broyden methods
+// Broyden's method seems to be an all round improvement over Newton-Raphson
+// It is faster and more accurate but is still not able to simulate past 32x32 due to execution time
+// Inverse Broyden's method could solve this, but as of now does not work for 16x16 and up
+// Even still, inverse Broyden loses significant accuracy over Broyden's method
+// However, all this (in my opinion) does not really matter as fixed point is close to Broyden's method in terms of accuracy and is way faster
+// For now I see no reason not to use the fixed point method
+// For all methods, generally the norm approaches some minimum and keeps oscillating around that or might degrade some
+// The best improvement for now is probably to detect these oscilation so the solver can exit early
+
+// Using any optimiation flags seems to break the code with vdd of 5 (works without optimization). Works for vdd of 1.5
+// The NANs seem to come from the crossbar solver
+// Compiler optimization also seems to reduce the accuracy
+
+// There are two variations: the 'good' and 'bad' Broyden's methods
+// The 'bad' method seems way faster, thus has been used for results
+// Measurements are from 1 run without optimization
+// Often not able to reach criterion
+// For 3x3: 2 iterations, 7 ms
+// For 8x8: 1.49084e-05 norm, 306 ms
+// For 16x16: 1.72063e-05 norm, 1402 ms
+// For 32x32: 0.00140215 norm, 13145 ms
+// For 64x64: 0.00852754 norm, 158731 ms
+// The 'good' method seems slower than the non-inverse Broyden's method, whic does not make senseto me, so I assume there is a bug
+Eigen::VectorXf broyden_inv_solve(
+    std::vector<std::vector<JART_VCM_v1b_var>> RRAM,
+    Eigen::VectorXf Vguess, Eigen::SparseMatrix<float> G_ABCD,
+    const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,
+    const Eigen::VectorXf& Vappbl1, const Eigen::VectorXf& Vappbl2,
+    const float Rswl1, const float Rswl2, const float Rsbl1, const float Rsbl2,
+    const float Rwl, const float Rbl,
+    const bool print = false
+) {
+    if (RRAM.size() == 0) { return Eigen::VectorXf(0); }
+    int M = RRAM.size();
+    int N = RRAM[0].size();
+
+    // Determine initial G
+    Eigen::MatrixXf G(M, N);
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < N; j++) {
+            float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
+            G(i, j) = 1./RRAM[i][j].getResistance(v);
+        }
+    }
+
+    // Calculate initial Vout
+    Eigen::VectorXf Vout = solve_cam(G, Vguess, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl);
+    Eigen::VectorXf Fv = Vout - Vguess;
+
+    // Calculate initial inverse Jacobian (Scaled identity matrix, finite difference, or other)
+    Eigen::MatrixXf B = Eigen::MatrixXf::Identity(2*M*N, 2*M*N);
+
+    float a = 1.;
+
+    int it_max = 100;
+    int it = 0;
+    while (true) {
+        if (print) { std::cout << "Norm: " << Fv.norm() << std::endl; }
+        // Check for convergence
+        if (Fv.norm() < 1e-6 || it >= it_max) {
+            if (print) {
+                std::cout << "V:\n" << Vout << std::endl << std::endl;
+                std::cout << "G:\n" << G << std::endl << std::endl;
+                std::cout << "R:\n" << G.array().inverse() << std::endl << std::endl;
+                std::cout << "Norm: " << (Vout - Vguess).norm() << std::endl;
+                if (it >= it_max) {
+                    std::cout << "Iteration limit reached: " << it << std::endl;
+                } else {
+                    std::cout << "Solved in " << it << " iterations" << std::endl;
+                }
+            }
+            norm += Fv.norm();
+            return Vout;
+        }
+
+        // Calculate dV
+        Eigen::VectorXf dV = -B * Fv;
+
+        // Updage Vguess
+        Vguess += a * dV;
+        
+        // Determine G
+        Eigen::MatrixXf G(M, N);
+        for (int i = 0; i < M; i++) {
+            for (int j = 0; j < N; j++) {
+                float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
+                G(i, j) = 1./RRAM[i][j].getResistance(v);
+            }
+        }
+
+        // Calculate V
+        Vout = solve_cam(G, Vguess, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl);
+        Eigen::VectorXf Fv_new = Vout - Vguess;
+        Eigen::VectorXf dF = Fv_new - Fv;
+
+        // Update inverse Jacobian
+        // B += ((dV - B * dF) / (dV.transpose() * B * dF + 1e-12)) * dV.transpose() * B;
+        B += ((dV - B * dF) / (dF.squaredNorm() + 1e-12)) * dF.transpose();
+
+        Fv = Fv_new;
+
+        it += 1;
+    }
+}
+
+// Often not able to reach criterion
+// Measurements are from 1 run without optimization
+// For 3x3: 1.05438e-05 norm, 47 ms
+// For 8x8: 4.41772e-05 norm, 766 ms
+// For 16x16: 0.000429604 norm, 22821 ms
+// For 32x32: 0.000861001 norm, 1295795 ms
+Eigen::VectorXf broyden_solve(
+    std::vector<std::vector<JART_VCM_v1b_var>> RRAM,
+    Eigen::VectorXf Vguess, Eigen::SparseMatrix<float> G_ABCD,
+    const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,
+    const Eigen::VectorXf& Vappbl1, const Eigen::VectorXf& Vappbl2,
+    const float Rswl1, const float Rswl2, const float Rsbl1, const float Rsbl2,
+    const float Rwl, const float Rbl,
+    const bool print = false
+) {
+    if (RRAM.size() == 0) { return Eigen::VectorXf(0); }
+    int M = RRAM.size();
+    int N = RRAM[0].size();
+
+    // Determine initial G
+    Eigen::MatrixXf G(M, N);
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < N; j++) {
+            float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
+            G(i, j) = 1./RRAM[i][j].getResistance(v);
+        }
+    }
+
+    // Calculate initial Vout
+    Eigen::VectorXf Vout = solve_cam(G, Vguess, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl);
+    Eigen::VectorXf Fv = Vout - Vguess;
+
+    // Calculate initial Jacobian (Scaled identity matrix, finite difference, or other)
+    Eigen::MatrixXf J = Eigen::MatrixXf::Identity(2*M*N, 2*M*N);
+
+    float a = 1.;
+
+    int it_max = 100;
+    int it = 0;
+    while (true) {
+        if (print) { std::cout << "Norm: " << Fv.norm() << std::endl; }
+        // Check for convergence
+        if (Fv.norm() < 1e-6 || it >= it_max) {
+            if (print) {
+                std::cout << "V:\n" << Vout << std::endl << std::endl;
+                std::cout << "G:\n" << G << std::endl << std::endl;
+                std::cout << "R:\n" << G.array().inverse() << std::endl << std::endl;
+                std::cout << "Norm: " << (Vout - Vguess).norm() << std::endl;
+                if (it >= it_max) {
+                    std::cout << "Iteration limit reached: " << it << std::endl;
+                } else {
+                    std::cout << "Solved in " << it << " iterations" << std::endl;
+                }
+            }
+            norm += Fv.norm();
+            return Vout;
+        }
+
+        // Calculate dV
+        Eigen::VectorXf dV = J.partialPivLu().solve(-Fv);
+
+        // Updage Vguess
+        Vguess += a * dV;
+        
+        // Determine G
+        Eigen::MatrixXf G(M, N);
+        for (int i = 0; i < M; i++) {
+            for (int j = 0; j < N; j++) {
+                float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
+                G(i, j) = 1./RRAM[i][j].getResistance(v);
+            }
+        }
+
+        // Calculate V
+        Vout = solve_cam(G, Vguess, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl);
+        Eigen::VectorXf Fv_new = Vout - Vguess;
+
+        // Update Jacobian
+        J += (((Fv_new - Fv) - J * dV) / (dV.squaredNorm() + 1e-12)) * dV.transpose();
+
+        Fv = Fv_new;
+
+        it += 1;
+    }
+}
+
+// Often not able to reach criterion
+// Measurements are from 1 run without optimization
+// For 3x3: 1.95541e-05 norm, 191 ms
+// For 8x8: 0.000301343 norm, 19377 ms
+// For 16x16: 0.00281188 norm, 380014 ms (Seems very unstable)
 Eigen::VectorXf newton_raphson_solve(
     std::vector<std::vector<JART_VCM_v1b_var>> RRAM,
-    Eigen::VectorXf& Vguess, Eigen::SparseMatrix<float>& G_ABCD,
+    Eigen::VectorXf Vguess, Eigen::SparseMatrix<float> G_ABCD,
     const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,
     const Eigen::VectorXf& Vappbl1, const Eigen::VectorXf& Vappbl2,
     const float Rswl1, const float Rswl2, const float Rsbl1, const float Rsbl2,
@@ -63,51 +292,56 @@ Eigen::VectorXf newton_raphson_solve(
 
     Eigen::MatrixXf G(M, N);
 
+    float a = 1.;
+
+    int it_max = 100;
     int it = 0;
-    while(true) {// Determine G
+    while(true) {
+        // Determine G
         for (int i = 0; i < M; i++) {
             for (int j = 0; j < N; j++) {
                 float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
-                if (v == 0) { v += 1e-6; }
-                G(i, j) = RRAM[i][j].apply_voltage(v, 0) / v;
+                G(i, j) = 1./RRAM[i][j].getResistance(v);
             }
         }
 
-        // Calculate V
+        // Calculate Vout
         Eigen::VectorXf Vout = solve_cam(G, Vguess, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl);
-
         Eigen::VectorXf Fv = Vout - Vguess;
 
-        std::cout << "Norm: " << Fv.norm() << std::endl;
-        if (Fv.norm() < 1e-6) {
+        if (print) { std::cout << "Norm: " << Fv.norm() << std::endl; }
+        // Check convergence
+        if (Fv.norm() < 1e-6 || it >= it_max) {
             if (print) {
                 std::cout << "V:\n" << Vout << std::endl << std::endl;
                 std::cout << "G:\n" << G << std::endl << std::endl;
                 std::cout << "R:\n" << G.array().inverse() << std::endl << std::endl;
-                std::cout << "Solved in " << it << " iterations" << std::endl;
+                std::cout << "Norm: " << (Vout - Vguess).norm() << std::endl;
+                if (it >= it_max) {
+                    std::cout << "Iteration limit reached: " << it << std::endl;
+                } else {
+                    std::cout << "Solved in " << it << " iterations" << std::endl;
+                }
             }
+            norm += Fv.norm();
             return Vout;
         }
 
         // Calculate Jacobian
         Eigen::MatrixXf J = Eigen::MatrixXf::Zero(2*M*N, 2*M*N);
-        float delta = 1e-6;
         for (int col = 0; col < 2*M*N; col++) {
-            std::cout << "Col: " << col << std::endl;
-
+            float delta = 1e-3;
             Vguess(col) += delta;
-            // std::cout << Vguess << std::endl << std::endl;
 
             for (int i = 0; i < M; i++) {
                 for (int j = 0; j < N; j++) {
-                    float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
-                    std::cout << "(i, j): " << i << " " << j << std::endl;
-                    if (v == 0) { v += 1e-6; }
-                    G(i, j) = RRAM[i][j].apply_voltage(v, 0) / v;
+                    double v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
+                    G(i, j) = 1./RRAM[i][j].getResistance(v);
                 }
             }
 
             Eigen::VectorXf Fj = solve_cam(G, Vguess, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl) - Vguess;
+
             J.col(col) = (Fj - Fv) / delta;
 
             Vguess(col) -= delta;
@@ -116,16 +350,25 @@ Eigen::VectorXf newton_raphson_solve(
         // Calculate dV
         Eigen::VectorXf dV = J.partialPivLu().solve(-Fv);
 
-        // Update guess
-        Vguess = Vguess + dV;
+        // Update Vguess
+        Vguess += a * dV;
 
         it++;
     }
 }
 
+// Tested up to 128 x 128
+// Often not able to reach criterion
+// Measurements are from 1 run without optimization
+// For 3x3: solved in 10 it, 7 ms
+// For 8x8: 0.000178692 norm, 505 ms (Sometimes solved in 10-12 iterations)
+// For 16x16: 0.000890559 norm, 1356 ms (Very rarely returns NAN with O3 optimization)
+// For 32x32: 0.00446302 norm, 4439 ms (Very rarely returns NAN with O3 optimization)
+// For 64x64: 0.0255631 norm, 24641 ms
+// For 128x128: 0.00284336 norm, 136759 ms (Often stalls or returns NANs)
 Eigen::VectorXf fixedpoint_solve(
     std::vector<std::vector<JART_VCM_v1b_var>> RRAM,
-    Eigen::VectorXf& Vguess, Eigen::SparseMatrix<float>& G_ABCD,
+    Eigen::VectorXf Vguess, Eigen::SparseMatrix<float> G_ABCD,
     const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,
     const Eigen::VectorXf& Vappbl1, const Eigen::VectorXf& Vappbl2,
     const float Rswl1, const float Rswl2, const float Rsbl1, const float Rsbl2,
@@ -138,41 +381,48 @@ Eigen::VectorXf fixedpoint_solve(
 
     Eigen::MatrixXf G(M, N);
 
-    // float w = 1.1;
+    float a = 0.5;
 
+    int it_max = 100;
     int it = 0;
     while (true) {
-        // std::cout << V << std::endl << std::endl;
-
         // Determine G
         for (int i = 0; i < M; i++) {
             for (int j = 0; j < N; j++) {
                 float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
-                if (v == 0) { v += 1e-6; }
-                G(i, j) = RRAM[i][j].apply_voltage(v, 0) / v;
+                // if (print) {
+                //     std::cout << i << " " << j << " " << v << std::endl;
+                // }
+                G(i, j) = 1./RRAM[i][j].getResistance(v);
             }
         }
         
-        // Calculate V
+        // Calculate Vout
         Eigen::VectorXf Vout = solve_cam(G, Vguess, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl);
+        Eigen::VectorXf Fv = Vout - Vguess;
 
-        if (print) { std::cout << "Norm: " << (Vout - Vguess).norm() << std::endl; }
-        // Exit condition
-        if ((Vout - Vguess).norm() < 1e-3) {
+        if (std::isnan(Fv.norm())) { assert(false); }
+
+        if (print) { std::cout << "Norm: " << Fv.norm() << std::endl; }
+        // Check convergence
+        if (Fv.norm() < 1e-6 | it >= it_max) {
             if (print) {
                 std::cout << "V:\n" << Vout << std::endl << std::endl;
                 std::cout << "G:\n" << G << std::endl << std::endl;
                 std::cout << "R:\n" << G.array().inverse() << std::endl << std::endl;
-                std::cout << "Solved in " << it << " iterations" << std::endl;
+                std::cout << "Norm: " << Fv.norm() << std::endl;
+                if (it >= it_max) {
+                    std::cout << "Iteration limit reached: " << it << std::endl;
+                } else {
+                    std::cout << "Solved in " << it << " iterations" << std::endl;
+                }
             }
+            norm += Fv.norm();
             return Vout;
         }
 
-        Vguess = Vout;
-
-        // V = w * V + (1 - w) * V_guess;
-
-        // w += 0.0001;
+        // Update Vguess
+        Vguess += a * (Vout - Vguess);
 
         it++;
     }
@@ -187,8 +437,10 @@ int main(int argc, char* argv[]) {
     int runs = (argc >= 4) ? std::atoi(argv[3]) : 1;
 
     bool print = (argc >= 5 && std::atoi(argv[4]) == 1) ? true : false;
-    
-    Eigen::VectorXf V = Eigen::VectorXf::Zero(2*M*N);
+
+    std::cout << "Solving " << M << "x" << N << " system in " << runs << " run(s)" << std::endl;
+
+    long long total_time = 0;
 
     float Rswl1 = 3.;
     float Rswl2 = INFINITY;
@@ -209,92 +461,72 @@ int main(int argc, char* argv[]) {
         RRAM.push_back(row);
     }
 
-    float Vdd = 5.;
-    Eigen::VectorXf Vappwl1 = Eigen::VectorXf::Random(M);
-    Vappwl1 = (Vappwl1.array() > 0.5).select(Eigen::VectorXf::Constant(M, Vdd), Eigen::VectorXf::Zero(M));
-    Vappwl1(0) = 5;
-    Vappwl1(1) = 7;
-    Vappwl1(2) = 9;
+    for (int i = 0; i < runs; i++) {
+        float Vdd = 1.5;
+        Eigen::VectorXf Vappwl1 = Eigen::VectorXf::Random(M);
+        Vappwl1 = (Vappwl1.array() > 0.5).select(Eigen::VectorXf::Constant(M, Vdd), Eigen::VectorXf::Zero(M));
+        // Vappwl1(0) = 0.5;
+        // Vappwl1(1) = 1.;
+        // Vappwl1(2) = 1.5;
+        Vappwl1 = Eigen::VectorXf::Zero(M);
+        Vappwl1(12) = Vdd;
+        Vappwl1(14) = Vdd;
 
-    Eigen::VectorXf Vappwl2 = Eigen::VectorXf::Zero(M);
-    Eigen::VectorXf Vappbl1 = Eigen::VectorXf::Zero(M);
-    Eigen::VectorXf Vappbl2 = Eigen::VectorXf::Zero(M);
+        Eigen::VectorXf Vappwl2 = Eigen::VectorXf::Zero(M);
+        Eigen::VectorXf Vappbl1 = Eigen::VectorXf::Zero(M);
+        Eigen::VectorXf Vappbl2 = Eigen::VectorXf::Zero(M);
 
-    if (print) {
-        std::cout << "Vappwl1:\n" << Vappwl1 << std::endl << std::endl;
-    }
+        if (print) {
+            std::cout << "Vappwl1:\n" << Vappwl1 << std::endl << std::endl;
+        }
 
-    // {
-    // auto start_time = std::chrono::high_resolution_clock::now();
-
-    // Eigen::VectorXf Vout = fixedpoint_solve(RRAM, V, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, print);
-
-    // auto end_time = std::chrono::high_resolution_clock::now();
-
-    // auto execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-    // std::cout << "Execution time: " << execution_time << " (ms)" << std::endl;
-
-    // if (print) {
-    //     Eigen::MatrixXf G(M, N);
-    //     for (int i = 0; i < M; i++) {
-    //         for (int j = 0; j < N; j++) {
-    //             float v = V(i*N + j) - V(i*N + j + M*N);
-    //             if (v == 0) { v += 1e-6; }
-    //             G(i, j) = RRAM[i][j].apply_voltage(v, 0) / v;
-    //         }
-    //     }
-
-    //     std::vector<float> Iout;
-    //     for (int j = 0; j < N; j++) {
-    //         float Ioutj = 0;
-    //         for (int i = 0; i < M; i++) {
-    //             Ioutj += (Vout(i*N + j) - Vout(i*N + j + M*N)) * G(i,j);
-    //         }
-    //         Iout.push_back(Ioutj);
-    //     }
-
-    //     std::cout << "Iout:" << std::endl;
-    //     for (int j = 0; j < N; j++) {
-    //         std::cout << Iout[j] << std::endl;
-    //     }
-    //     std::cout << std::endl;
-    // }
-    // }
-
-    {
-    auto start_time = std::chrono::high_resolution_clock::now();
-
-    Eigen::VectorXf Vout = newton_raphson_solve(RRAM, V, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, print);
-
-    auto end_time = std::chrono::high_resolution_clock::now();
-
-    auto execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-    std::cout << "Execution time: " << execution_time << " (ms)" << std::endl;
-
-    if (print) {
-        Eigen::MatrixXf G(M, N);
+        Eigen::VectorXf V = Eigen::VectorXf::Zero(2*M*N);
         for (int i = 0; i < M; i++) {
             for (int j = 0; j < N; j++) {
-                float v = V(i*N + j) - V(i*N + j + M*N);
-                if (v == 0) { v += 1e-6; }
-                G(i, j) = RRAM[i][j].apply_voltage(v, 0) / v;
+                V(i*N + j) = Vappwl1(i);
             }
         }
+        auto start_time = std::chrono::high_resolution_clock::now();
 
-        std::vector<float> Iout;
-        for (int j = 0; j < N; j++) {
-            float Ioutj = 0;
+        Eigen::VectorXf Vout = fixedpoint_solve(RRAM, V, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, print);
+        // Eigen::VectorXf Vout = newton_raphson_solve(RRAM, V, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, print);
+        // Eigen::VectorXf Vout = broyden_solve(RRAM, V, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, print);
+        // Eigen::VectorXf Vout = broyden_inv_solve(RRAM, V, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, print);
+
+        auto end_time = std::chrono::high_resolution_clock::now();
+
+        auto execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+        std::cout << "Execution time: " << execution_time << " (ms)" << std::endl;
+        total_time += execution_time;
+
+        if (print) {
+            Eigen::MatrixXf G(M, N);
             for (int i = 0; i < M; i++) {
-                Ioutj += (Vout(i*N + j) - Vout(i*N + j + M*N)) * G(i,j);
+                for (int j = 0; j < N; j++) {
+                    float v = Vout(i*N + j) - Vout(i*N + j + M*N);
+                    G(i, j) = 1./RRAM[i][j].getResistance(v);
+                }
             }
-            Iout.push_back(Ioutj);
-        }
 
-        std::cout << "Iout:" << std::endl;
-        for (int j = 0; j < N; j++) {
-            std::cout << Iout[j] << std::endl;
+            std::vector<float> Iout;
+            for (int j = 0; j < N; j++) {
+                float Ioutj = 0;
+                for (int i = 0; i < M; i++) {
+                    Ioutj += (Vout(i*N + j) - Vout(i*N + j + M*N)) * G(i,j);
+                }
+                Iout.push_back(Ioutj);
+            }
+
+            std::cout << "Iout:" << std::endl;
+            for (int j = 0; j < N; j++) {
+                std::cout << Iout[j] << std::endl;
+            }
+            std::cout << std::endl;
         }
-        std::cout << std::endl;
     }
+    
+    if (runs > 1) {
+        std::cout << "Average execution time: " << total_time/runs << " ms" << std::endl;
+        std::cout << "Average norm: " << norm/runs << std::endl;
     }
 }

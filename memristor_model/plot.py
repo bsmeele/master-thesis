@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 def main():
     file_path = 'out.txt'
     file_path2 = 'out2.txt'
+    file_path3 = 'out3.txt'
 
     t = []  # Time
     V = []  # Votage
@@ -41,6 +42,12 @@ def main():
     R18 = []
     R19 = []
     R20 = []
+    V3 = []
+    Is1 = []
+    Is2 = []
+    Rs1 = []
+    Rs2 = []
+
 
     with open(file_path, 'r') as file:
         for line in file:
@@ -93,6 +100,20 @@ def main():
                     R18.append(float(numbers[19]))
                     R19.append(float(numbers[20]))
                     R20.append(float(numbers[21]))
+
+                except ValueError:
+                    print(f"Skipping invalid line: {line.strip()}")
+
+    with open(file_path3, 'r') as file:
+        for line in file:
+            numbers = line.split()
+            if len(numbers) >= 5:
+                try:
+                    V3.append(float(numbers[0]))
+                    Is1.append(float(numbers[1]))
+                    Is2.append(float(numbers[2]))
+                    Rs1.append(float(numbers[3]))
+                    Rs2.append(float(numbers[4]))
 
                 except ValueError:
                     print(f"Skipping invalid line: {line.strip()}")
@@ -151,30 +172,45 @@ def main():
     # plt.legend()
     # plt.grid(True)
 
-    plt.subplot(2, 2, 4)
-    plt.plot(V2, R0, '-', label="N=0.008", color='blue')
-    plt.plot(V2, R5, '-', label="N=5", color='orange')
-    plt.plot(V2, R10, '-', label="N=10", color='yellow')
-    plt.plot(V2, R15, '-', label="N=15", color='purple')
-    plt.plot(V2, R20, '-', label="N=20", color='green')
-    # plt.yscale('log')
-    plt.ylim(1500, 2000)
-    plt.title('Resistance per oxygen vacancy concentration')
-    plt.xlabel('Votlage (V)')
-    plt.ylabel('Resistance (Ohm)')
-    plt.legend()
-    plt.grid(True)
-
-    # plt.subplot(2, 2, 3)
-    # plt.plot(t, V, '-', label='Applied', color='blue')
-    # plt.plot(t, V_schottky, '-', label='Schottky', color='orange')
-    # plt.plot(t, V_discplugserial, '-', label='DiscPlugSerial', color='purple')
-    # plt.xlim(0, 6)
-    # plt.title('Voltage')
-    # plt.xlabel('Time (s)')
-    # plt.ylabel('Voltage (V)')
+    # plt.subplot(2, 2, 4)
+    # plt.plot(V2, R0, '-', label="N=0.008", color='blue')
+    # plt.plot(V2, R5, '-', label="N=5", color='orange')
+    # plt.plot(V2, R10, '-', label="N=10", color='yellow')
+    # plt.plot(V2, R15, '-', label="N=15", color='purple')
+    # plt.plot(V2, R20, '-', label="N=20", color='green')
+    # # plt.yscale('log')
+    # plt.xlim(-1.5, 1.5)
+    # plt.ylim(1500, 2000)
+    # plt.title('Resistance per oxygen vacancy concentration')
+    # plt.xlabel('Votlage (V)')
+    # plt.ylabel('Resistance (Ohm)')
     # plt.legend()
     # plt.grid(True)
+
+    # plt.subplot(2, 2, 4)
+    # plt.plot(V3, Is1, '-', label="N=0.008", color='blue')
+    # plt.plot(V3, Is2, '-', label='N=20',color='orange')
+    # # plt.plot(V3, Rs1, '-', label="R; N=0.008", color='yellow')
+    # # plt.plot(V3, Rs2, '-', label='R; N=20',color='purple')
+    # # plt.yscale('log')
+    # # plt.xlim(-1.5, 1.5)
+    # # plt.ylim(-1e15, 1e15)
+    # plt.title('Schottky current')
+    # plt.xlabel('Voltage (V)')
+    # plt.ylabel('Current (A)')
+    # plt.legend()
+    # plt.grid(True)
+
+    plt.subplot(2, 2, 4)
+    plt.plot(t, V, '-', label='Applied', color='blue')
+    plt.plot(t, V_schottky, '-', label='Schottky', color='orange')
+    plt.plot(t, V_discplugserial, '-', label='DiscPlugSerial', color='purple')
+    plt.xlim(0, 6)
+    plt.title('Voltage')
+    plt.xlabel('Time (s)')
+    plt.ylabel('Voltage (V)')
+    plt.legend()
+    plt.grid(True)
 
     # plt.subplot(2, 2, 4)
     # plt.plot(t, phibn, '-', label='phibn', color='blue')

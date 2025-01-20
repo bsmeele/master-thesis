@@ -4,6 +4,8 @@
 #include <vector>
 #include <iostream>
 #include <algorithm>
+#include <cassert>
+#include <cfloat>
 
 // Based on this paper:
 // https://ieeexplore-ieee-org.tudelft.idm.oclc.org/document/9181475
@@ -67,6 +69,9 @@
 //   Add changing simulation parameters (time step, adaptive time step, solve exit criterium, etc.)
 //   Fix early reset
 //   Fix temperature error (might also be causing early reset)
+//   Fix early solve exit (f_low * f_high > 0)
+//     For now I've added something that checks whether V_low and V_high are too close to each other
+//     A possible reason the other check doesn't work is that there are multiple roots (specifically, an even amount of roots), so the solver wrongly things there are no solutions in the bounds
 
 void JART_VCM_v1b_var::updateFilamentArea() {
     A = M_PI * pow(rvar, 2);
@@ -80,7 +85,7 @@ void JART_VCM_v1b_var::updateTemperature(double V_schottky, double V_discplugser
     // Treal = I_schottky * (V_schottky + I_schottky * (Rdisc + Rplug)) * Rtheff + T0;
 }
 
-double JART_VCM_v1b_var::computeSchottkyCurrent(double V_schottky, bool print=false) {
+double JART_VCM_v1b_var::computeSchottkyCurrent(double V_schottky, bool print) {
     double phibn;
     if (V_schottky < phibn0 - phin) {
         double psi = phibn0 - phin - V_schottky;
@@ -147,9 +152,18 @@ double JART_VCM_v1b_var::computeIonCurrent(double V_applied, double V_schottky, 
 }
 
 std::array<double, 3> JART_VCM_v1b_var::solve_system(double V_low, double V_high, double V_applied) {
+    assert(!std::isnan(V_low));
+    assert(!std::isnan(V_high));
+    assert(!std::isnan(V_applied));
+    assert(!std::isinf(V_low));
+    assert(!std::isinf(V_high));
+    assert(!std::isinf(V_applied));
+    if (V_low > V_high) { return {NAN, NAN, NAN}; }
+
     double V_schottky;
     double I_schottky;
     double V_discplugserial;
+
     // I_schottky = computeSchottkyCurrent(V_low);
     // updateResistance(I_schottky);
     // V_discplugserial = (Rdisc + Rplug + Rseries) * I_schottky;
@@ -162,7 +176,6 @@ std::array<double, 3> JART_VCM_v1b_var::solve_system(double V_low, double V_high
     // if (f_low * f_high > 0) {
     //         // std::cout << "No solution in bounds" << std::endl;
     //         // std::cout << V_applied << std::endl;
-    //         // int test = 1/0;
     //         return {NAN, NAN, NAN};
     // }
     
@@ -170,26 +183,13 @@ std::array<double, 3> JART_VCM_v1b_var::solve_system(double V_low, double V_high
     double a = 0.5;
     while (true) {
         V_schottky = V_low * a + V_high * (1. - a);
-        if (i > 1e3) {
-            // std::cout << "Iteration limit reached" << std::endl;
-            // int test = 1/0;
-            return {NAN, NAN, NAN};
-        }
-        if (std::isinf(V_schottky) || std::isinf(I_schottky) || std::isinf(V_discplugserial)) {
-            // std::cout << "inf detected" << std::endl;
-            // int test = 1 / 0;
-            return {NAN, NAN, NAN};
-        }
-        if (std::isnan(V_schottky) || std::isnan(I_schottky) || std::isnan(V_discplugserial)) {
-            // std::cout << "nan detected" << std::endl;
-            // int test = 1 / 0;
-            return {NAN, NAN, NAN};
-        }
+
         I_schottky = computeSchottkyCurrent(V_schottky);
         updateResistance(I_schottky);
         V_discplugserial = (Rdisc + Rplug + Rseries) * I_schottky;
+        if (std::isinf(V_discplugserial)) { V_discplugserial = FLT_MAX; }
         double err = V_applied - V_discplugserial - V_schottky;
-        if (fabs(err) < 1e-6) { break; }
+        if (fabs(err) < 1e-6) { return {V_schottky, V_discplugserial, I_schottky}; }
         // if (V_applied < 0) {
         //     if (err < 0) { V_low = V_schottky; }
         //     else { V_high = V_schottky; }
@@ -199,7 +199,36 @@ std::array<double, 3> JART_VCM_v1b_var::solve_system(double V_low, double V_high
         // }
         if (err > 0) { V_low = V_schottky; }
         else { V_high = V_schottky; }
-        i += 1;
+        
+        if (i > 1e3) {
+            std::cout << "Iteration limit reached, err: " << err << std::endl;
+            // std::cout << V_low << " " << V_schottky << " " << V_high << std::endl;
+            // std::cout << I_schottky << " " << V_discplugserial << " " << V_applied - V_discplugserial - V_schottky << std::endl;
+            // return {NAN, NAN, NAN};
+            return {V_schottky, V_discplugserial, I_schottky};
+        }
+        if (abs(V_low - V_high) < 1e-9) {
+            return {NAN, NAN, NAN};
+        }
+        if (std::isinf(V_low) || std::isinf(V_schottky) || std::isinf(V_high)) {
+            std::cout << "inf detected" << std::endl;
+            // std::cout << V_low << " " << V_schottky << " " << V_high << std::endl;
+            // std::cout << I_schottky << " " << V_discplugserial << " " << V_applied - V_discplugserial - V_schottky << std::endl;
+            assert(false);
+            return {NAN, NAN, NAN};
+        }
+        if (std::isnan(V_low) || std::isnan(V_schottky) || std::isnan(V_high)) {
+            std::cout << "NAN detected" << std::endl;
+            assert(false);
+            return {NAN, NAN, NAN};
+        }
+        if (std::isnan(I_schottky) || std::isnan(V_discplugserial) || std::isnan(err)) {
+            // std::cout << "nan detected" << std::endl;
+            // std::cout << V_low << " " << V_schottky << " " << V_high << std::endl;
+            // std::cout << I_schottky << " " << V_discplugserial << " " << V_applied - V_discplugserial - V_schottky << std::endl;
+            return {NAN, NAN, NAN};
+        }
+        
         // if (V_applied > tresh) {
         //     std::cout << "V applied: " << V_applied << std::endl;
         //     std::cout << "V schottky: " << V_schottky << std::endl;
@@ -209,8 +238,9 @@ std::array<double, 3> JART_VCM_v1b_var::solve_system(double V_low, double V_high
         //     std::cout << "V_applied - V_discplugserial: " << V_applied - V_discplugserial << std::endl;
         //     std::cout << std::endl;
         // }
+        
+        i += 1;
     }
-    return {V_schottky, V_discplugserial, I_schottky};
 }
 
 double JART_VCM_v1b_var::apply_voltage(double V_applied, double dt) {
@@ -226,11 +256,11 @@ double JART_VCM_v1b_var::apply_voltage(double V_applied, double dt) {
     double V_schottky;
     double V_discplugserial;
     double I_schottky;
-    // if (V_applied == V_prev) {
-    //     V_schottky = solve_prev[0];
-    //     V_discplugserial = solve_prev[1];
-    //     I_schottky = solve_prev[2];
-    // } else {
+    if (abs(V_applied - V_prev) == 1e-6) {
+        V_schottky = solve_prev[0];
+        V_discplugserial = solve_prev[1];
+        I_schottky = solve_prev[2];
+    } else {
         if (V_applied < 0) {
             auto result = solve_system(V_applied, 0, V_applied);
             V_schottky = result[0];
@@ -239,12 +269,14 @@ double JART_VCM_v1b_var::apply_voltage(double V_applied, double dt) {
         } else if (V_applied > 0) {
             auto result1 = solve_system(0, phibn0 - phin, V_applied);
             auto result2 = solve_system(phibn0 - phin, V_applied, V_applied);
+
             if (std::isnan(result1[0]) || std::isnan(result1[1]) || std::isnan(result1[2]) || std::isinf(result1[0]) || std::isinf(result1[1]) || std::isinf(result1[2])) {
                 V_solve_bottom = 0;
             } else { V_solve_bottom = result1[0]; }
             if (std::isnan(result2[0]) || std::isnan(result2[1]) || std::isnan(result2[2]) || std::isinf(result2[0]) || std::isinf(result2[1]) || std::isinf(result2[2])) {
                 V_solve_top = 0;
             } else { V_solve_top = result2[0]; }
+
             if (V_applied < V_prev) {
                 std::swap(result1, result2);
             }
@@ -266,14 +298,22 @@ double JART_VCM_v1b_var::apply_voltage(double V_applied, double dt) {
             V_discplugserial = 0;
             I_schottky = 0;
         }
-    // }
+    }
     if (std::isinf(V_schottky) || std::isinf(I_schottky) || std::isinf(V_discplugserial)) {
         std::cout << "inf detected" << std::endl;
-        // int test = 1 / 0;
+        // std::cout << "Vapplied: " << V_applied << std::endl;
+        // std::cout << "Vschottky: " << V_schottky << std::endl;
+        // std::cout << "Vdiscplugser: " << V_discplugserial << std::endl;
+        // std::cout << "I: " << I_schottky << std::endl;
+        assert(false);
     }
     if (std::isnan(V_schottky) || std::isnan(I_schottky) || std::isnan(V_discplugserial)) {
         std::cout << "nan detected" << std::endl;
-        int test = 1 / 0;
+        // std::cout << "Vapplied: " << V_applied << std::endl;
+        // std::cout << "Vschottky: " << V_schottky << std::endl;
+        // std::cout << "Vdiscplugser: " << V_discplugserial << std::endl;
+        // std::cout << "I: " << I_schottky << std::endl;
+        assert(false);
     }
     
     V_prev = V_applied;
@@ -305,4 +345,9 @@ double JART_VCM_v1b_var::apply_voltage(double V_applied, double dt) {
         updateTemperature(V_schottky, V_discplugserial, I_schottky);
     }
     return I_schottky;
+}
+
+double JART_VCM_v1b_var::getResistance(double V_applied) {
+    if (abs(V_applied) < 1e-6) { return Rdisc + Rplug + RTiOx; }
+    else { return V_applied / apply_voltage(V_applied, 0); }
 }

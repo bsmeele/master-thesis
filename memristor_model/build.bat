@@ -6,7 +6,7 @@ set OUTPUT=model.exe
 
 REM Compile command
 echo Compiling...
-g++ -std=c++17 -g ^
+g++ -std=c++17 -O3 ^
 JART_VCM_v1b_var.cpp ^
 main.cpp ^
 -o %OUTPUT%
