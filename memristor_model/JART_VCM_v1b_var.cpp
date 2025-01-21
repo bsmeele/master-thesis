@@ -72,6 +72,12 @@
 //   Fix early solve exit (f_low * f_high > 0)
 //     For now I've added something that checks whether V_low and V_high are too close to each other
 //     A possible reason the other check doesn't work is that there are multiple roots (specifically, an even amount of roots), so the solver wrongly things there are no solutions in the bounds
+//     I plugged it into desmos and it indeed seems to have 3 roots for certain applied voltages
+//   Another consideration is also use T as an input variable
+//     T influences several variables and is also dependend on the voltage, as well as influencing the current
+//     Currently the voltage from the previous iteration is taken
+//     I think this is a fair simplification since temperature doesn't instantly disipate so would be expected to depend on previous values
+//     However, this assumption should be checked
 
 void JART_VCM_v1b_var::updateFilamentArea() {
     A = M_PI * pow(rvar, 2);
@@ -103,9 +109,9 @@ double JART_VCM_v1b_var::computeSchottkyCurrent(double V_schottky, bool print) {
         return -A * ((Arichardson * Treal) / P_K) * sqrt(M_PI * W00 * P_Q * (fabs(V_schottky) + phibn / pow(cosh(W00/(P_K * Treal)), 2)))
         * exp(-P_Q * phibn / W0) * (exp(P_Q * fabs(V_schottky) / epsprime) - 1);
     } else { // Schottky TE RESET direction
-        if (print) {
-            std::cout << A * Arichardson * pow(Treal, 2) * exp(-phibn * P_Q / (P_K * Treal)) * (exp(P_Q / (P_K * Treal) * V_schottky) - 1) << ' ' << V_prev << ' ' << phibn << ' ' << V_schottky << ' ' << Nreal << std::endl;
-        }
+        // if (print) {
+        //     std::cout << A * Arichardson * pow(Treal, 2) * exp(-phibn * P_Q / (P_K * Treal)) * (exp(P_Q / (P_K * Treal) * V_schottky) - 1) << ' ' << V_prev << ' ' << phibn << ' ' << V_schottky << ' ' << Nreal << std::endl;
+        // }
         return A * Arichardson * pow(Treal, 2) * exp(-phibn * P_Q / (P_K * Treal)) * (exp(P_Q / (P_K * Treal) * V_schottky) - 1);
     }
 }

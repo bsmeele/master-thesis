@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <chrono>
+#include <cassert>
 
 int main(int argc, char* argv[]) {
     srand((unsigned int) time(0));
@@ -29,8 +30,8 @@ int main(int argc, char* argv[]) {
 
     for (int i = 0; i < runs; i++) {
         float Rmin = 100.;
-        float Rmax = 1000.;
-        float Vdd = 5.;
+        float Rmax = 100000.;
+        float Vdd = 1.5;
 
         if (print) {
             std::cout << "Rswl1: " << Rswl1 << std::endl;
@@ -45,15 +46,15 @@ int main(int argc, char* argv[]) {
         Eigen::MatrixXf R = Eigen::MatrixXf::Random(M, N);
         R = (R + Eigen::MatrixXf::Constant(M, N, 1.0)) * 0.5 * (Rmax - Rmin) + Eigen::MatrixXf::Constant(M, N, Rmin);
         // R = Eigen::MatrixXf::Zero(M, N);
-        R(0, 0) = 10.;
-        R(0, 1) = 15.;
-        R(0, 2) = 20.;
-        R(1, 0) = 25.;
-        R(1, 1) = 30.;
-        R(1, 2) = 35.;
-        R(2, 0) = 40.;
-        R(2, 1) = 45.;
-        R(2, 2) = 50.;
+        // R(0, 0) = 10.;
+        // R(0, 1) = 15.;
+        // R(0, 2) = 20.;
+        // R(1, 0) = 25.;
+        // R(1, 1) = 30.;
+        // R(1, 2) = 35.;
+        // R(2, 0) = 40.;
+        // R(2, 1) = 45.;
+        // R(2, 2) = 50.;
 
         // R(0, 0) = 1e4;
         // R(0, 1) = 2e4;
@@ -77,9 +78,9 @@ int main(int argc, char* argv[]) {
 
         Eigen::VectorXf Vappwl1 = Eigen::VectorXf::Random(M);
         Vappwl1 = (Vappwl1.array() > 0.5).select(Eigen::VectorXf::Constant(M, Vdd), Eigen::VectorXf::Zero(M));
-        Vappwl1(0) = 5;
-        Vappwl1(1) = 7;
-        Vappwl1(2) = 9;
+        // Vappwl1(0) = 5;
+        // Vappwl1(1) = 7;
+        // Vappwl1(2) = 9;
 
         Eigen::VectorXf Vappwl2 = Eigen::VectorXf::Zero(M);
         Eigen::VectorXf Vappbl1 = Eigen::VectorXf::Zero(M);
@@ -91,9 +92,13 @@ int main(int argc, char* argv[]) {
 
         auto start_time = std::chrono::high_resolution_clock::now();
 
-        Eigen::VectorXf Vout = solve_cam(G, V, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, print);
+        Eigen::VectorXf Vout = solve_cam(G, V, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, false);
 
         auto end_time = std::chrono::high_resolution_clock::now();
+
+        for (int i = 0; i < Vout.size(); i++) {
+            assert(!std::isnan(Vout(i)));
+        }
 
         if (print) {
             std::vector<float> Iout;

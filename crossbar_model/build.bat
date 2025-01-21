@@ -6,7 +6,7 @@ set OUTPUT=cam.exe
 
 REM Compile command
 echo Compiling...
-g++ -std=c++17 -g ^
+g++ -std=c++17 -O3 ^
 -I .\eigen\ ^
 cam.cpp ^
 main.cpp ^
