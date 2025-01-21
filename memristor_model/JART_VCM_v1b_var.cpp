@@ -213,7 +213,10 @@ std::array<double, 3> JART_VCM_v1b_var::solve_system(double V_low, double V_high
             // return {NAN, NAN, NAN};
             return {V_schottky, V_discplugserial, I_schottky};
         }
-        if (abs(V_low - V_high) < 1e-9) {
+        if (fabs(V_low - V_high) < 1e-9) {
+            // std::cout << V_low << " " << V_schottky << " " << V_high << std::endl;
+            // std::cout << I_schottky << " " << V_discplugserial << " " << V_applied - V_discplugserial - V_schottky << std::endl;
+            // std::cout << V_low << " " << V_high << " " << V_low- V_high << " " << fabs(V_low - V_high) << std::endl;
             return {NAN, NAN, NAN};
         }
         if (std::isinf(V_low) || std::isinf(V_schottky) || std::isinf(V_high)) {
@@ -262,11 +265,11 @@ double JART_VCM_v1b_var::apply_voltage(double V_applied, double dt) {
     double V_schottky;
     double V_discplugserial;
     double I_schottky;
-    if (abs(V_applied - V_prev) == 1e-6) {
-        V_schottky = solve_prev[0];
-        V_discplugserial = solve_prev[1];
-        I_schottky = solve_prev[2];
-    } else {
+    // if (fabs(V_applied - V_prev) < 1e-6) {
+    //     V_schottky = solve_prev[0];
+    //     V_discplugserial = solve_prev[1];
+    //     I_schottky = solve_prev[2];
+    // } else {
         if (V_applied < 0) {
             auto result = solve_system(V_applied, 0, V_applied);
             V_schottky = result[0];
@@ -304,7 +307,7 @@ double JART_VCM_v1b_var::apply_voltage(double V_applied, double dt) {
             V_discplugserial = 0;
             I_schottky = 0;
         }
-    }
+    // }
     if (std::isinf(V_schottky) || std::isinf(I_schottky) || std::isinf(V_discplugserial)) {
         std::cout << "inf detected" << std::endl;
         // std::cout << "Vapplied: " << V_applied << std::endl;
@@ -315,10 +318,10 @@ double JART_VCM_v1b_var::apply_voltage(double V_applied, double dt) {
     }
     if (std::isnan(V_schottky) || std::isnan(I_schottky) || std::isnan(V_discplugserial)) {
         std::cout << "nan detected" << std::endl;
-        // std::cout << "Vapplied: " << V_applied << std::endl;
-        // std::cout << "Vschottky: " << V_schottky << std::endl;
-        // std::cout << "Vdiscplugser: " << V_discplugserial << std::endl;
-        // std::cout << "I: " << I_schottky << std::endl;
+        std::cout << "Vapplied: " << V_applied << std::endl;
+        std::cout << "Vschottky: " << V_schottky << std::endl;
+        std::cout << "Vdiscplugser: " << V_discplugserial << std::endl;
+        std::cout << "I: " << I_schottky << std::endl;
         assert(false);
     }
     
@@ -354,6 +357,6 @@ double JART_VCM_v1b_var::apply_voltage(double V_applied, double dt) {
 }
 
 double JART_VCM_v1b_var::getResistance(double V_applied) {
-    if (abs(V_applied) < 1e-6) { return Rdisc + Rplug + RTiOx; }
+    if (fabs(V_applied) < 1e-6) { return Rdisc + Rplug + RTiOx; }
     else { return V_applied / apply_voltage(V_applied, 0); }
 }

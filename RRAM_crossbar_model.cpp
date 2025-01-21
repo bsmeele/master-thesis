@@ -401,7 +401,11 @@ Eigen::VectorXf fixedpoint_solve(
         Eigen::VectorXf Vout = solve_cam(G, Vguess, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl);
         Eigen::VectorXf Fv = Vout - Vguess;
 
-        if (std::isnan(Fv.norm())) { assert(false); }
+        if (std::isnan(Fv.norm())) {
+            std::cout << Vguess << std::endl;
+            std::cout << G << std::endl;
+            assert(false);
+        }
 
         if (print) { std::cout << "Norm: " << Fv.norm() << std::endl; }
         // Check convergence
@@ -465,12 +469,13 @@ int main(int argc, char* argv[]) {
         float Vdd = 1.5;
         Eigen::VectorXf Vappwl1 = Eigen::VectorXf::Random(M);
         Vappwl1 = (Vappwl1.array() > 0.5).select(Eigen::VectorXf::Constant(M, Vdd), Eigen::VectorXf::Zero(M));
+
         // Vappwl1(0) = 0.5;
         // Vappwl1(1) = 1.;
         // Vappwl1(2) = 1.5;
-        Vappwl1 = Eigen::VectorXf::Zero(M);
-        Vappwl1(12) = Vdd;
-        Vappwl1(14) = Vdd;
+        // Vappwl1 = Eigen::VectorXf::Zero(M);
+        // Vappwl1(12) = Vdd;
+        // Vappwl1(14) = Vdd;
 
         Eigen::VectorXf Vappwl2 = Eigen::VectorXf::Zero(M);
         Eigen::VectorXf Vappbl1 = Eigen::VectorXf::Zero(M);
