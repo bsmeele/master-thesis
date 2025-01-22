@@ -94,6 +94,18 @@ float norm = 0;
 // The NANs seem to come from the crossbar solver
 // Compiler optimization also seems to reduce the accuracy
 
+// Actually, NANs also occur without optimization
+// I've tested the intput for which it returns NAN (G matrix and Vappwl1) on the crossbar code and it does not return NAN
+// Additionally, I've compared it with the associated Vguess and the norm is 0.0012673, which would be correspond to a slight norm reduction
+// Ussing the Vguess as the initial guess in the crossbar code also doesn't change anything.
+// Thus something about calling the function from the RRAM code breaks it
+// Besides fixing this bug. It might be usefull to think about what should happen when the crossbar solver is given an impossible configuration (altough I can't think of any impossible configurations)
+
+// Apperantly using the conjugate gradient solver without guess in the crossbar solver fixes this bug. No idea why. Additionally, the loss of the guess option increases executiont time
+// Actually, it seems to fix it for 16x66. For 32x32 it still exists
+// Additionally, it now very rarely reduces NAN for 16x16 because sometimes Vapplies is over thousands of volt (positive or negative). Meaning the solver (or model) goes wrong somewhere
+// After 1000 runs of 16x16, the inverse broyden method (haven't tested others) does not seem to exhibit this solver bug (the one in the line above), suggesting it is a fault in the fixed point method
+
 // There are two variations: the 'good' and 'bad' Broyden's methods
 // The 'bad' method seems way faster, thus has been used for results
 // Measurements are from 1 run without optimization
@@ -139,6 +151,7 @@ Eigen::VectorXf broyden_inv_solve(
     int it = 0;
     while (true) {
         if (print) { std::cout << "Norm: " << Fv.norm() << std::endl; }
+        if (std::isnan(Fv.norm())) { assert(false); }
         // Check for convergence
         if (Fv.norm() < 1e-6 || it >= it_max) {
             if (print) {
@@ -227,6 +240,7 @@ Eigen::VectorXf broyden_solve(
     int it = 0;
     while (true) {
         if (print) { std::cout << "Norm: " << Fv.norm() << std::endl; }
+        if (std::isnan(Fv.norm())) { assert(false); }
         // Check for convergence
         if (Fv.norm() < 1e-6 || it >= it_max) {
             if (print) {
@@ -310,6 +324,7 @@ Eigen::VectorXf newton_raphson_solve(
         Eigen::VectorXf Fv = Vout - Vguess;
 
         if (print) { std::cout << "Norm: " << Fv.norm() << std::endl; }
+        if (std::isnan(Fv.norm())) { assert(false); }
         // Check convergence
         if (Fv.norm() < 1e-6 || it >= it_max) {
             if (print) {
@@ -393,7 +408,7 @@ Eigen::VectorXf fixedpoint_solve(
                 // if (print) {
                 //     std::cout << i << " " << j << " " << v << std::endl;
                 // }
-                G(i, j) = 1./RRAM[i][j].getResistance(v);
+                G(i, j) = (float) 1./RRAM[i][j].getResistance(v);
             }
         }
         
@@ -404,6 +419,32 @@ Eigen::VectorXf fixedpoint_solve(
         if (std::isnan(Fv.norm())) {
             std::cout << Vguess << std::endl;
             std::cout << G << std::endl;
+            std::cout << Vappwl1 << std::endl;
+            
+            // std::ofstream outFile("out.txt");
+
+            // if (!outFile) {
+            //     std::cout << "No out file" << std::endl;
+            //     assert(false);
+            // }
+
+            // outFile << M << std::endl;
+            // outFile << N << std::endl << std::endl;
+            // outFile << G << std::endl << std::endl;
+            // outFile << Vguess << std::endl << std::endl;
+            // outFile << Vappwl1 << std::endl << std::endl;
+            // outFile << Vappwl2 << std::endl << std::endl;
+            // outFile << Vappbl1 << std::endl << std::endl;
+            // outFile << Vappbl2 << std::endl << std::endl;
+            // outFile << Rswl1 << std::endl;
+            // outFile << Rswl2 << std::endl;
+            // outFile << Rsbl1 << std::endl;
+            // outFile << Rsbl2 << std::endl;
+            // outFile << Rwl << std::endl;
+            // outFile << Rbl << std::endl;
+
+            // outFile.close();
+
             assert(false);
         }
 

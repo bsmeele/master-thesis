@@ -49,7 +49,7 @@ int main() {
     // I_test = memristor.computeSchottkyCurrent(V_test-0.01);
     // std::cout << "V: " << V_test-0.01 << ", I: " << I_test << std::endl;
 
-    outFile << "t V I Nreal Treal Rschottky Rdisc Rplug Rseries Vschottky Vdiscplugserial phibn Vsolvebottom Vsolvetop" << std::endl;
+    outFile << "t V I Nreal Treal Rschottky Rdisc Rplug Rseries Vschottky Vdiscplugserial phibn Vsolvebottom Vsolvetop Rtotal Rtheff" << std::endl;
 
     for (int i = 1; i < V_wave.size(); i++) {
         // std::cout << i << std::endl;
@@ -63,6 +63,7 @@ int main() {
             << " " << (V - (memristor.Rdisc + memristor.Rplug + memristor.Rseries) * I)/I << " " << memristor.Rdisc << " " << memristor.Rplug << " " << memristor.Rseries
             << " " << (V - (memristor.Rdisc + memristor.Rplug + memristor.Rseries) * I) << " " << (memristor.Rdisc + memristor.Rplug + memristor.Rseries) * I
             << " " << memristor.phibn_out << " " << memristor.V_solve_bottom << " " << memristor.V_solve_top << " " << V/I
+            << " " << memristor.Rtheff
             << std::endl;
             V += dv;
             t += dt;

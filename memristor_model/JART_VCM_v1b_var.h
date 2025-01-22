@@ -32,7 +32,8 @@ class JART_VCM_v1b_var {
         double a = 0.25e-9;           // from [0.1e-9:1e-9], ion hopping distance [m]
         double nyo = 2e13;            // from [1e10:1e14], attempt frequency [Hz]
         double dWa = 1.35;            // from [0.8:1.5], activation energy [eV]
-        double Rth0 = 15.72e6;        // from [1e6:20e6], thermal resistance of the Hafnium Oxide [K/W]
+        // double Rth0 = 15.72e6;        // from [1e6:20e6], thermal resistance of the Hafnium Oxide [K/W]
+        double Rth0 = 1e7;
         double rdet = 45e-9;          // from [5e-9:100e-9], radius of the filament [m]
         double rnew = 45e-9;          // from [5e-9:100e-9], radius of the filament [m]
         double lcell = 3;             // from [2:5], length of disc and plug region [nm]

@@ -61,14 +61,23 @@
 //   My best guess as to what causes this slight early RESET is some error in the temperature calculation
 //   A slight increase in temperature can cause it to reset slightly earlier
 //   However, it is difficult to compare the temperature values around the RESET by eye. For proper comparison a simulation of the verilog-A model is needed
-//   It can be noted however that the temperature peak is around 300 while it should be around 2000, so it stands to reason that the temperature around the RESET point is also slightly higher
+//   It can be noted however that the temperature peak is around 3000 while it should be around 2000, so it stands to reason that the temperature around the RESET point is also slightly higher
+
+// I've compared my c++ simulation with simulation data from cadence spectre
+// Appart from the already noticed early reset, the set also seams slightly early
+// As noticed earlier, the temperature peaks also don't line up
+// The peak associated with the set and reset are expectantly a little early
+// Additionally, the peak at t=1.5 is quiet a bit higher
+// Interestingly, the current at that point is identical to the cadence simulation, suggesting the temperature calculation is simpy wrong
+// This might also cause the early set/reset bugs
+// Turns out the model parameter Rtheff was wrong in their provided model
+// Or at least when I changed that value to 1e7 (instead of the provided 15.72e6), the c++ simulation near perfectly matches
 
 // TODO:
 //   Variability model
 //   Add changing fitting parameters
 //   Add changing simulation parameters (time step, adaptive time step, solve exit criterium, etc.)
-//   Fix early reset
-//   Fix temperature error (might also be causing early reset)
+//   Fix jurrent jitter after reset (might be caused by wrong solver solution, see below)
 //   Fix early solve exit (f_low * f_high > 0)
 //     For now I've added something that checks whether V_low and V_high are too close to each other
 //     A possible reason the other check doesn't work is that there are multiple roots (specifically, an even amount of roots), so the solver wrongly things there are no solutions in the bounds
@@ -78,6 +87,7 @@
 //     Currently the voltage from the previous iteration is taken
 //     I think this is a fair simplification since temperature doesn't instantly disipate so would be expected to depend on previous values
 //     However, this assumption should be checked
+//     I've compared the c++ simulation with a cadence simulation and the results are near identical. So for now I think this assumption is valid
 
 void JART_VCM_v1b_var::updateFilamentArea() {
     A = M_PI * pow(rvar, 2);
