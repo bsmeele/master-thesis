@@ -1,7 +1,6 @@
 #include "JART_VCM_v1b_var.h"
 
 #include <cmath>
-#include <vector>
 #include <iostream>
 #include <algorithm>
 #include <cassert>
@@ -73,11 +72,19 @@
 // Turns out the model parameter Rtheff was wrong in their provided model
 // Or at least when I changed that value to 1e7 (instead of the provided 15.72e6), the c++ simulation near perfectly matches
 
+// I have fixed the remaining jitter by choosing the solution of the solver based on which is closer to the previous value
+//   (previously it was based on if Vapplied was increasing or decreasing)
+// I'm unsure why this fixes it, since I'm still ignoring the third root
+// I'll leave it for now, but I should remember that this could become an issue in the future
+// On a side note, I did think of a way to find all three roots:
+//   First find a root in the part before phibn0 - phin (doesn't matter which root)
+//   Start two new solvers with interval (0, root), and (root, phibn0 - phin)
+// I haven't properly tested yet if this works, but at leats I have a method
+
 // TODO:
 //   Variability model
 //   Add changing fitting parameters
 //   Add changing simulation parameters (time step, adaptive time step, solve exit criterium, etc.)
-//   Fix jurrent jitter after reset (might be caused by wrong solver solution, see below)
 //   Fix early solve exit (f_low * f_high > 0)
 //     For now I've added something that checks whether V_low and V_high are too close to each other
 //     A possible reason the other check doesn't work is that there are multiple roots (specifically, an even amount of roots), so the solver wrongly things there are no solutions in the bounds
@@ -94,14 +101,10 @@ void JART_VCM_v1b_var::updateFilamentArea() {
 }
 
 void JART_VCM_v1b_var::updateTemperature(double V_schottky, double V_discplugserial, double I_schottky) {
-    // if (V_prev > 0.63 && V_prev < 0.642) {
-    //     std::cout << Treal << ' ' << I_schottky << ' ' << Rtheff << ' ' << V_schottky << ' ' << V_discplugserial << ' ' << Rdisc << ' ' << Rplug << ' ' << Rseries << ' ' << Nreal << std::endl;
-    // }
     Treal = I_schottky * (V_schottky + V_discplugserial * (Rdisc + Rplug) / (Rdisc + Rplug + Rseries)) * Rtheff + T0;
-    // Treal = I_schottky * (V_schottky + I_schottky * (Rdisc + Rplug)) * Rtheff + T0;
 }
 
-double JART_VCM_v1b_var::computeSchottkyCurrent(double V_schottky, bool print) {
+double JART_VCM_v1b_var::computeSchottkyCurrent(double V_schottky) {
     double phibn;
     if (V_schottky < phibn0 - phin) {
         double psi = phibn0 - phin - V_schottky;
@@ -109,9 +112,6 @@ double JART_VCM_v1b_var::computeSchottkyCurrent(double V_schottky, bool print) {
         if (phibn < 0) { phibn = 0; }
     } else { phibn = phibn0; }
     phibn_out = phibn;
-    // if (print) {
-    //     std::cout << V_schottky << ' ' << computeSchottkyCurrent(V_schottky) << ' ' << phibn << ' ' << pow(P_Q, 3) * zvo * Nreal * 1e26 * (phibn0 - phin - V_schottky) / (8 * pow(M_PI, 2) * (pow(epsphib_eff, 3))) << std::endl;
-    // }
     if (V_schottky < 0) { // TFE Schottky SET direction
         double W00 = (P_Q * P_H / (4 * M_PI)) * sqrt(zvo * Nreal * 1e26 / (mdiel * eps_eff));
         double W0 = W00 / tanh(W00 / (P_K * Treal));
@@ -119,9 +119,6 @@ double JART_VCM_v1b_var::computeSchottkyCurrent(double V_schottky, bool print) {
         return -A * ((Arichardson * Treal) / P_K) * sqrt(M_PI * W00 * P_Q * (fabs(V_schottky) + phibn / pow(cosh(W00/(P_K * Treal)), 2)))
         * exp(-P_Q * phibn / W0) * (exp(P_Q * fabs(V_schottky) / epsprime) - 1);
     } else { // Schottky TE RESET direction
-        // if (print) {
-        //     std::cout << A * Arichardson * pow(Treal, 2) * exp(-phibn * P_Q / (P_K * Treal)) * (exp(P_Q / (P_K * Treal) * V_schottky) - 1) << ' ' << V_prev << ' ' << phibn << ' ' << V_schottky << ' ' << Nreal << std::endl;
-        // }
         return A * Arichardson * pow(Treal, 2) * exp(-phibn * P_Q / (P_K * Treal)) * (exp(P_Q / (P_K * Treal) * V_schottky) - 1);
     }
 }
@@ -134,7 +131,6 @@ void JART_VCM_v1b_var::updateResistance(double I_discplugserial) {
 
 void JART_VCM_v1b_var::updateConcentration(double I_ion, double dt) {
     double Nchange = (-trig / (A * lvar * 1e-9 * P_Q * zvo) * I_ion / 1e26) * dt;
-    // Nreal = Ninitreal + Nchange;
     Nreal += Nchange;
     if (Nreal > Ndiscmax) { Nreal = Ndiscmax; }
     else if (Nreal < Ndiscmin) { Nreal = Ndiscmin; }
@@ -160,14 +156,11 @@ double JART_VCM_v1b_var::computeIonCurrent(double V_applied, double V_schottky, 
         double gamma = zvo * P_Q * E_ion * a / (M_PI * dWa * P_Q);
         double dWamin = dWa * P_Q * (sqrt(1 - pow(gamma, 2)) - gamma * M_PI/2 + gamma * asin(gamma));
         double dWamax = dWa * P_Q * (sqrt(1 - pow(gamma, 2)) + gamma * M_PI/2 + gamma * asin(gamma));
-        // if (V_applied > 0.62 && V_applied < 0.72) {
-        //     std::cout << V_applied << ' ' << Treal << ' ' << dWamin << ' ' << dWamax << ' ' << ' ' << zvo * P_Q * cvo * a * nyo * A * (exp(-dWamin / (P_K * Treal)) - exp(-dWamax / (P_K * Treal))) * Flim << ' ' << Nreal << std::endl;
-        // }
         return zvo * P_Q * cvo * a * nyo * A * (exp(-dWamin / (P_K * Treal)) - exp(-dWamax / (P_K * Treal))) * Flim;
     }
 }
 
-std::array<double, 3> JART_VCM_v1b_var::solve_system(double V_low, double V_high, double V_applied) {
+std::array<double, 3> JART_VCM_v1b_var::solve_bisection(double V_low, double V_high, double V_applied) {
     assert(!std::isnan(V_low));
     assert(!std::isnan(V_high));
     assert(!std::isnan(V_applied));
@@ -195,7 +188,7 @@ std::array<double, 3> JART_VCM_v1b_var::solve_system(double V_low, double V_high
     //         return {NAN, NAN, NAN};
     // }
     
-    int i = 0;
+    int it = 0;
     double a = 0.5;
     while (true) {
         V_schottky = V_low * a + V_high * (1. - a);
@@ -206,17 +199,10 @@ std::array<double, 3> JART_VCM_v1b_var::solve_system(double V_low, double V_high
         if (std::isinf(V_discplugserial)) { V_discplugserial = FLT_MAX; }
         double err = V_applied - V_discplugserial - V_schottky;
         if (fabs(err) < 1e-6) { return {V_schottky, V_discplugserial, I_schottky}; }
-        // if (V_applied < 0) {
-        //     if (err < 0) { V_low = V_schottky; }
-        //     else { V_high = V_schottky; }
-        // } else {
-        //     if (err > 0) { V_low = V_schottky; }
-        //     else { V_high = V_schottky; }
-        // }
         if (err > 0) { V_low = V_schottky; }
         else { V_high = V_schottky; }
         
-        if (i > 1e3) {
+        if (it > 1e3) {
             std::cout << "Iteration limit reached, err: " << err << std::endl;
             // std::cout << V_low << " " << V_schottky << " " << V_high << std::endl;
             // std::cout << I_schottky << " " << V_discplugserial << " " << V_applied - V_discplugserial - V_schottky << std::endl;
@@ -248,6 +234,159 @@ std::array<double, 3> JART_VCM_v1b_var::solve_system(double V_low, double V_high
             return {NAN, NAN, NAN};
         }
         
+        it += 1;
+    }
+}
+
+// Only finds one root where multiple should be found; not functional
+void JART_VCM_v1b_var::multi_solve_bisection(double V_low, double V_high, double V_applied, std::vector<std::array<double, 3>> &roots) {
+
+    assert(!std::isnan(V_low));
+    assert(!std::isnan(V_high));
+    assert(!std::isnan(V_applied));
+    assert(!std::isinf(V_low));
+    assert(!std::isinf(V_high));
+    assert(!std::isinf(V_applied));
+    if (V_low > V_high) { return; }
+
+    double V_schottky;
+    double I_schottky;
+    double V_discplugserial;
+
+    // I_schottky = computeSchottkyCurrent(V_low);
+    // updateResistance(I_schottky);
+    // V_discplugserial = (Rdisc + Rplug + Rseries) * I_schottky;
+    // double f_low = V_applied - V_low - V_discplugserial;
+    
+    // I_schottky = computeSchottkyCurrent(V_high);
+    // updateResistance(I_schottky);
+    // V_discplugserial = (Rdisc + Rplug + Rseries) * I_schottky;
+    // double f_high = V_applied - V_high - V_discplugserial;
+    // if (f_low * f_high > 0) {
+    //         // std::cout << "No solution in bounds" << std::endl;
+    //         // std::cout << V_applied << std::endl;
+    //         return;
+    // }
+    
+    int it = 0;
+    double a = 0.5;
+    while(true) {
+        V_schottky = V_low * a + V_high * (1. - a);
+
+        I_schottky = computeSchottkyCurrent(V_schottky);
+        updateResistance(I_schottky);
+        V_discplugserial = (Rdisc + Rplug + Rseries) * I_schottky;
+        if (std::isinf(V_discplugserial)) { V_discplugserial = FLT_MAX; }
+        double err = V_applied - V_discplugserial - V_schottky;
+        if (fabs(err) < 1e-6) {
+            roots.push_back({V_schottky, V_discplugserial, I_schottky});
+            multi_solve_bisection(V_low, V_schottky - 1e-6, V_applied, roots);
+            multi_solve_bisection(V_schottky + 1e-6, V_high, V_applied, roots);
+            return;
+        }
+        if (err > 0) { V_low = V_schottky; }
+        else { V_high = V_schottky; }
+        
+        if (it > 1e3) {
+            std::cout << "Iteration limit reached, err: " << err << std::endl;
+            // std::cout << V_low << " " << V_schottky << " " << V_high << std::endl;
+            // std::cout << I_schottky << " " << V_discplugserial << " " << V_applied - V_discplugserial - V_schottky << std::endl;
+            // return {NAN, NAN, NAN};
+            roots.push_back({V_schottky, V_discplugserial, I_schottky});
+            return;
+        }
+        if (fabs(V_low - V_high) < 1e-9) {
+            // std::cout << V_low << " " << V_schottky << " " << V_high << std::endl;
+            // std::cout << I_schottky << " " << V_discplugserial << " " << V_applied - V_discplugserial - V_schottky << std::endl;
+            // std::cout << V_low << " " << V_high << " " << V_low- V_high << " " << fabs(V_low - V_high) << std::endl;
+            return;
+        }
+        if (std::isinf(V_low) || std::isinf(V_schottky) || std::isinf(V_high)) {
+            std::cout << "inf detected" << std::endl;
+            // std::cout << V_low << " " << V_schottky << " " << V_high << std::endl;
+            // std::cout << I_schottky << " " << V_discplugserial << " " << V_applied - V_discplugserial - V_schottky << std::endl;
+            assert(false);
+            return;
+        }
+        if (std::isnan(V_low) || std::isnan(V_schottky) || std::isnan(V_high)) {
+            std::cout << "NAN detected" << std::endl;
+            assert(false);
+            return;
+        }
+        if (std::isnan(I_schottky) || std::isnan(V_discplugserial) || std::isnan(err)) {
+            // std::cout << "nan detected" << std::endl;
+            // std::cout << V_low << " " << V_schottky << " " << V_high << std::endl;
+            // std::cout << I_schottky << " " << V_discplugserial << " " << V_applied - V_discplugserial - V_schottky << std::endl;
+            return;
+        }
+        
+        it += 1;
+    }
+}
+
+// Often produces inf or NAN results; not functional
+std::array<double, 3> JART_VCM_v1b_var::solve_fixedpoint(double V_guess, double V_applied) {
+    assert(!std::isnan(V_guess));
+    assert(!std::isinf(V_guess));
+    assert(!std::isnan(V_applied));
+    assert(!std::isinf(V_applied));
+
+    double V_schottky;
+    double I_schottky;
+    double V_discplugserial;
+
+    int it = 0;
+    double a = 0.5;
+    while (true) {
+        I_schottky = computeSchottkyCurrent(V_guess);
+        updateResistance(I_schottky);
+        V_discplugserial = (Rdisc + Rplug + Rseries) * I_schottky;
+        if (std::isinf(V_discplugserial)) { V_discplugserial = FLT_MAX; }
+
+        double V_schottky = V_applied - V_discplugserial;
+
+        double err = V_guess - V_schottky;
+        if (fabs(err) < 1e-6) { return {V_schottky, V_discplugserial, I_schottky}; }
+
+        V_guess = (1-a) * V_guess + a * V_schottky;
+        if (V_applied > 0) {
+            if (V_guess > V_applied) { V_guess = V_applied; }
+            else if (V_guess < 0) { V_guess = 0; }
+        } else {
+            if (V_guess < V_applied) { V_guess = V_applied; }
+            else if (V_guess > 0) { V_guess = 0; }
+        }
+
+        if (std::isinf(V_guess)) {
+            std::cout << "inf detected" << std::endl;
+            // std::cout << V_low << " " << V_schottky << " " << V_high << std::endl;
+            // std::cout << I_schottky << " " << V_discplugserial << " " << V_applied - V_discplugserial - V_schottky << std::endl;
+            assert(false);
+            return {NAN, NAN, NAN};
+        }
+        if (std::isnan(V_guess)) {
+            std::cout << "NAN detected" << std::endl;
+            std::cout << "Vapplied: " << V_applied << std::endl;
+            std::cout << "Vschottky: " << V_schottky << std::endl;
+            std::cout << "Vdiscplugser: " << V_discplugserial << std::endl;
+            std::cout << "I: " << I_schottky << std::endl;
+            assert(false);
+            return {NAN, NAN, NAN};
+        }
+        if (std::isnan(I_schottky) || std::isnan(V_discplugserial) || std::isnan(err)) {
+            // std::cout << "nan detected" << std::endl;
+            // std::cout << V_low << " " << V_schottky << " " << V_high << std::endl;
+            // std::cout << I_schottky << " " << V_discplugserial << " " << V_applied - V_discplugserial - V_schottky << std::endl;
+            return {NAN, NAN, NAN};
+        }
+        if (it > 1e3) {
+            std::cout << "Iteration limit reached, err: " << err << std::endl;
+            // std::cout << V_low << " " << V_schottky << " " << V_high << std::endl;
+            // std::cout << I_schottky << " " << V_discplugserial << " " << V_applied - V_discplugserial - V_schottky << std::endl;
+            // return {NAN, NAN, NAN};
+            return {V_schottky, V_discplugserial, I_schottky};
+        }
+        
         // if (V_applied > tresh) {
         //     std::cout << "V applied: " << V_applied << std::endl;
         //     std::cout << "V schottky: " << V_schottky << std::endl;
@@ -258,66 +397,197 @@ std::array<double, 3> JART_VCM_v1b_var::solve_system(double V_low, double V_high
         //     std::cout << std::endl;
         // }
         
-        i += 1;
+        it += 1;
+    }
+}
+
+// Often produces NAN results; not functional
+std::array<double, 3> JART_VCM_v1b_var::solve_brent(double V_a, double V_b, double V_applied) {
+    assert(!std::isnan(V_a));
+    assert(!std::isnan(V_b));
+    assert(!std::isnan(V_applied));
+    assert(!std::isinf(V_a));
+    assert(!std::isinf(V_b));
+    assert(!std::isinf(V_applied));
+
+    double V_schottky;
+    double I_schottky;
+    double V_discplugserial;
+
+    I_schottky = computeSchottkyCurrent(V_a);
+    updateResistance(I_schottky);
+    V_discplugserial = (Rdisc + Rplug + Rseries) * I_schottky;
+    if (std::isinf(V_discplugserial)) { V_discplugserial = FLT_MAX; }
+    double f_a = V_applied - V_discplugserial - V_schottky;
+    
+    I_schottky = computeSchottkyCurrent(V_b);
+    updateResistance(I_schottky);
+    V_discplugserial = (Rdisc + Rplug + Rseries) * I_schottky;
+    if (std::isinf(V_discplugserial)) { V_discplugserial = FLT_MAX; }
+    double f_b = V_applied - V_discplugserial - V_schottky;
+
+    if (f_a * f_b > 0) { return {NAN, NAN, NAN}; }
+
+    if (fabs(f_a) < fabs(f_b)) { std::swap (V_a, V_b); }
+
+    double V_c = V_a;
+
+    double V_s;
+    double V_d;
+    double delta = 1e-6;
+    bool mflag = true;
+
+    int it = 0;
+    while (true) {
+        if (f_b == 0 || abs(V_b - V_a) < 1e-6) { return {V_schottky, V_discplugserial, I_schottky}; }
+        if (it > 1e6) {
+            std::cout << "Iteration limit reached, err: " << f_b << std::endl;
+            return {V_schottky, V_discplugserial, I_schottky};
+        }
+        
+        I_schottky = computeSchottkyCurrent(V_c);
+        updateResistance(I_schottky);
+        V_discplugserial = (Rdisc + Rplug + Rseries) * I_schottky;
+        if (std::isinf(V_discplugserial)) { V_discplugserial = FLT_MAX; }
+        double f_c = V_applied - V_discplugserial - V_schottky;
+
+        if ((f_a != f_c) && (f_b != f_c)) {
+            V_s = (V_a * f_b * f_c) / ((f_a - f_b) * (f_a - f_c)) + (V_b * f_a * f_c) / ((f_b - f_a) * (f_b - f_c)) + (V_c * f_a * f_b) / ((f_c - f_a) * (f_c - f_b));
+        } else {
+            V_s = V_b - f_b * (V_b - V_a) / (f_b - f_a);
+        }
+
+        if (!(V_s > std::min((3*V_a + V_b)/4., V_b) && V_s < std::max((3*V_a + V_b)/4., V_b))
+        || (mflag && fabs(V_s - V_b) >= fabs(V_b - V_c)/2)
+        || (!mflag && fabs(V_b - V_c) >= fabs(V_c - V_d)/2.)
+        || (mflag && fabs(V_b - V_c) < delta)
+        || (!mflag && fabs(V_c - V_d) < delta)) {
+            V_s = (V_a + V_b) / 2;
+            mflag = true;
+        } else { mflag = false; }
+        
+        I_schottky = computeSchottkyCurrent(V_s);
+        updateResistance(I_schottky);
+        V_discplugserial = (Rdisc + Rplug + Rseries) * I_schottky;
+        if (std::isinf(V_discplugserial)) { V_discplugserial = FLT_MAX; }
+        double f_s = V_applied - V_discplugserial - V_schottky;
+
+        V_d = V_c;
+        V_c = V_b;
+
+        if (f_a * f_c < 0) { V_b = V_s; }
+        else { V_a = V_c; }
+
+        I_schottky = computeSchottkyCurrent(V_a);
+        updateResistance(I_schottky);
+        V_discplugserial = (Rdisc + Rplug + Rseries) * I_schottky;
+        if (std::isinf(V_discplugserial)) { V_discplugserial = FLT_MAX; }
+        double f_a = V_applied - V_discplugserial - V_schottky;
+
+        I_schottky = computeSchottkyCurrent(V_b);
+        updateResistance(I_schottky);
+        V_discplugserial = (Rdisc + Rplug + Rseries) * I_schottky;
+        if (std::isinf(V_discplugserial)) { V_discplugserial = FLT_MAX; }
+        double f_b = V_applied - V_discplugserial - V_schottky;
+
+        if (fabs(f_a) < fabs(f_b)) { std::swap(V_a, V_b); }
     }
 }
 
 double JART_VCM_v1b_var::apply_voltage(double V_applied, double dt) {
     // Check voltage crossings
-    if ((V_prev > -1.5e-5 && V_applied <= -1.5e-5) || (V_prev < 1.5e-5 && V_applied >= 1.5e-5)) {
-        rold = rvar;
-        lold = lvar;
-        Nold = Nreal;
-        trig = 1;
+    if (dt != 0) {
+        if ((V_prev > -1.5e-5 && V_applied <= -1.5e-5) || (V_prev < 1.5e-5 && V_applied >= 1.5e-5)) {
+            rold = rvar;
+            lold = lvar;
+            Nold = Nreal;
+            trig = 1;
+        }
     }
-    // double V_low = 0;
-    // double V_high = V_applied;
+
     double V_schottky;
     double V_discplugserial;
     double I_schottky;
-    // if (fabs(V_applied - V_prev) < 1e-6) {
-    //     V_schottky = solve_prev[0];
-    //     V_discplugserial = solve_prev[1];
-    //     I_schottky = solve_prev[2];
-    // } else {
-        if (V_applied < 0) {
-            auto result = solve_system(V_applied, 0, V_applied);
-            V_schottky = result[0];
-            V_discplugserial = result[1];
-            I_schottky = result[2];
-        } else if (V_applied > 0) {
-            auto result1 = solve_system(0, phibn0 - phin, V_applied);
-            auto result2 = solve_system(phibn0 - phin, V_applied, V_applied);
+    if (V_applied < 0) {
+        auto result = solve_bisection(V_applied, 0, V_applied);
+        V_schottky = result[0];
+        V_discplugserial = result[1];
+        I_schottky = result[2];
+    } else if (V_applied > 0) {
 
-            if (std::isnan(result1[0]) || std::isnan(result1[1]) || std::isnan(result1[2]) || std::isinf(result1[0]) || std::isinf(result1[1]) || std::isinf(result1[2])) {
-                V_solve_bottom = 0;
-            } else { V_solve_bottom = result1[0]; }
-            if (std::isnan(result2[0]) || std::isnan(result2[1]) || std::isnan(result2[2]) || std::isinf(result2[0]) || std::isinf(result2[1]) || std::isinf(result2[2])) {
-                V_solve_top = 0;
-            } else { V_solve_top = result2[0]; }
+        // std::vector<std::array<double, 3>> roots;
+        // multi_solve_bisection(0, V_applied, V_applied, roots);
+        // if (roots.size() > 1) {
+        //     std::cout << roots.size() << std::endl;
+        // }
 
-            if (V_applied < V_prev) {
-                std::swap(result1, result2);
-            }
-            if (std::isnan(result1[0]) || std::isnan(result1[1]) || std::isnan(result1[2]) || std::isinf(result1[0]) || std::isinf(result1[1]) || std::isinf(result1[2])) {
-                V_schottky = result2[0];
-                V_discplugserial = result2[1];
-                I_schottky = result2[2];
-            } else {
-                V_schottky = result1[0];
-                V_discplugserial = result1[1];
-                I_schottky = result1[2];
-            }
-            // auto result = solve_system(0, V_applied, V_applied);
-            // V_schottky = result[0];
-            // V_discplugserial = result[1];
-            // I_schottky = result[2];
+        auto result1 = solve_bisection(0, phibn0 - phin, V_applied);
+        auto result2 = solve_bisection(phibn0 - phin, V_applied, V_applied);
+        // auto result3 = solve_bisection(result1[0], phibn0 - phin, V_applied);
+        // auto result4 = solve_bisection(0, result1[0], V_applied);
+
+        if (fabs(result2[0] - V_schottky_prev) < fabs(result1[0] - V_schottky_prev)) {
+            V_schottky = result2[0];
+            V_discplugserial = result2[1];
+            I_schottky = result2[2];
         } else {
-            V_schottky = 0;
-            V_discplugserial = 0;
-            I_schottky = 0;
+            V_schottky = result1[0];
+            V_discplugserial = result1[1];
+            I_schottky = result1[2];
         }
-    // }
+
+        // if (V_applied < V_prev) {
+        //     std::swap(result1, result2);
+        // }
+
+        // if (std::isnan(result1[0]) || std::isnan(result1[1]) || std::isnan(result1[2]) || std::isinf(result1[0]) || std::isinf(result1[1]) || std::isinf(result1[2])) {
+        //     V_schottky = result2[0];
+        //     V_discplugserial = result2[1];
+        //     I_schottky = result2[2];
+        // } else {
+        //     V_schottky = result1[0];
+        //     V_discplugserial = result1[1];
+        //     I_schottky = result1[2];
+        // }
+
+        // if (!std::isnan(result2[0]) && !std::isnan(result3[0]) && !std::isnan(result4[0]) && fabs(result3[0] - result4[0]) > 1e-3) {
+        //     std::cout << result2[0] << " " << result3[0] << " " << result4[0] << std::endl;
+        // }
+
+        // if (V_applied > V_prev) {
+        //     std::swap(result2, result4);
+        // }
+
+        // if (!std::isnan(result2[0]) && !std::isnan(result2[1]) && !std::isnan(result2[2]) && !std::isinf(result2[0]) && !std::isinf(result2[1]) && !std::isinf(result2[2])) {
+        //     V_schottky = result2[0];
+        //     V_discplugserial = result2[1];
+        //     I_schottky = result2[2];
+        // } else if (!std::isnan(result3[0]) && !std::isnan(result3[1]) && !std::isnan(result3[2]) && !std::isinf(result3[0]) && !std::isinf(result3[1]) && !std::isinf(result3[2])) {
+        //     V_schottky = result3[0];
+        //     V_discplugserial = result3[1];
+        //     I_schottky = result3[2];
+        // } else {
+        //     V_schottky = result4[0];
+        //     V_discplugserial = result4[1];
+        //     I_schottky = result4[2];
+        // }
+
+        // auto result = solve_bisection(0, V_applied, V_applied);
+        // V_schottky = result[0];
+        // V_discplugserial = result[1];
+        // I_schottky = result[2];
+    } else {
+        V_schottky = 0;
+        V_discplugserial = 0;
+        I_schottky = 0;
+    }
+
+    // auto result = solve_fixedpoint(V_schottky_prev, V_applied);
+    // auto result = solve_brent(0, V_applied, V_applied);
+    // V_schottky = result[0];
+    // V_discplugserial = result[1];
+    // I_schottky = result[2];
+
     if (std::isinf(V_schottky) || std::isinf(I_schottky) || std::isinf(V_discplugserial)) {
         std::cout << "inf detected" << std::endl;
         // std::cout << "Vapplied: " << V_applied << std::endl;
@@ -328,31 +598,22 @@ double JART_VCM_v1b_var::apply_voltage(double V_applied, double dt) {
     }
     if (std::isnan(V_schottky) || std::isnan(I_schottky) || std::isnan(V_discplugserial)) {
         std::cout << "nan detected" << std::endl;
-        std::cout << "Vapplied: " << V_applied << std::endl;
-        std::cout << "Vschottky: " << V_schottky << std::endl;
-        std::cout << "Vdiscplugser: " << V_discplugserial << std::endl;
-        std::cout << "I: " << I_schottky << std::endl;
+        // std::cout << "Vapplied: " << V_applied << std::endl;
+        // std::cout << "Vschottky: " << V_schottky << std::endl;
+        // std::cout << "Vdiscplugser: " << V_discplugserial << std::endl;
+        // std::cout << "I: " << I_schottky << std::endl;
         assert(false);
     }
     
-    V_prev = V_applied;
-    V_schottky_prev = V_schottky;
-    solve_prev = {V_schottky, V_discplugserial, I_schottky};
-    // f(V) = V_applied - V_schottky - V_discplugserial
-    // For positive voltage, split into two regions based on shottky diode (threshold = phibn0 - phin)
-    // Check if a solution exists in that range (if no solution exists f(v_low) * f(v_high) > 0)
-    // If a solution exists for both, search the space on the side of the previous voltage
-    // if (V_prev > 0.157 && V_prev < 0.162) {
-    //     double tmp = computeSchottkyCurrent(V_schottky, true);
-    //     // std::cout << V_applied << ' ' << V_schottky << ' ' << tmp << ' ' << Nreal << std::endl;
-    // }
-    if (dt == 0) { return I_schottky; }
+    if (dt != 0) {
+        V_prev = V_applied;
+        V_schottky_prev = V_schottky;
+    } else { return I_schottky; }
+
     double I_ion = computeIonCurrent(V_applied, V_schottky, V_discplugserial);
-    // if (V_applied > tresh && V_applied < tresh2) {
-    //     std::cout << "dt: " << dt << ", V_applied: " << V_applied << ", I_ion: " << I_ion << ", Nreal: " << Nreal << std::endl;
-    // }
     double N_before = Nreal;
     updateConcentration(I_ion, dt);
+
     // Force smaller time steps during abrupt switching
     if (fabs(Nreal - N_before) > 1e-1) {
         if (dt < 1e-9) { return I_schottky; }
@@ -367,6 +628,6 @@ double JART_VCM_v1b_var::apply_voltage(double V_applied, double dt) {
 }
 
 double JART_VCM_v1b_var::getResistance(double V_applied) {
-    if (fabs(V_applied) < 1e-6) { return Rdisc + Rplug + RTiOx; }
+    if (fabs(V_applied) < 1e-6) { return Rdisc + Rplug + RTiOx + R0; }
     else { return V_applied / apply_voltage(V_applied, 0); }
 }

@@ -13,6 +13,7 @@
 // #include <cmath>
 
 float norm = 0;
+bool flag = false;
 
 // The crossbar solver assumes all devices to be linear. However, the memristor model is nonlinear
 // This means some adaptations are required to combine the two
@@ -102,9 +103,23 @@ float norm = 0;
 // Besides fixing this bug. It might be usefull to think about what should happen when the crossbar solver is given an impossible configuration (altough I can't think of any impossible configurations)
 
 // Apperantly using the conjugate gradient solver without guess in the crossbar solver fixes this bug. No idea why. Additionally, the loss of the guess option increases executiont time
-// Actually, it seems to fix it for 16x66. For 32x32 it still exists
-// Additionally, it now very rarely reduces NAN for 16x16 because sometimes Vapplies is over thousands of volt (positive or negative). Meaning the solver (or model) goes wrong somewhere
+// Actually, it seems to only fix it for 16x66. For 32x32 it still exists
+// Additionally, it now very rarely returns NAN for 16x16 because sometimes Vapplies is over thousands of volt (positive or negative). Meaning the solver (or model) goes wrong somewhere
 // After 1000 runs of 16x16, the inverse broyden method (haven't tested others) does not seem to exhibit this solver bug (the one in the line above), suggesting it is a fault in the fixed point method
+
+// Some additional observations on the random NAN bug:
+//   No NANs seem to be present in the Vguess, G_ABCD, and E just before the solver in the solve_cam() function
+//   Change of vdd (from 1.5 to 1) does not seem to have any effect
+//   Writing the exact inputs for a NAN to a file and using that as inupts for the crossbar main file does not return NANs
+//   Retrying with the same inputs still produces NANs
+//   Recomputing G_ABCD at every iteration still produces NANs
+//   At no point does G_ABCD seem to be alterred
+
+// I'm not sure how, but I've made a small change in the memristor model (trig and Vprev are no longer updated when dt == 0)
+// This seems to massively reduce execution time since the solver is now able to converge, thus this also increases accuracy
+// The bug is still present but reduced in frequency (about 1/1000 for 16x16?)
+// This is possibly due to less iterations per solver being run
+// Perhaps the remainder of this bug is related to similar history based behaviour, although I can not find any
 
 // There are two variations: the 'good' and 'bad' Broyden's methods
 // The 'bad' method seems way faster, thus has been used for results
@@ -411,14 +426,86 @@ Eigen::VectorXf fixedpoint_solve(
                 G(i, j) = (float) 1./RRAM[i][j].getResistance(v);
             }
         }
+
+        // for (int i = 0; i < M; i++) {
+        //     for (int j = 0; j < N; j++) {
+        //         if (std::isnan(G(i, j)) || std::isinf(G(i, j))) {
+        //             std::cout << "Bad G" << std::endl;
+        //             assert(false);
+        //         }
+        //     }
+        // }
+        // for (int i = 0; i < 2*M*N; i++) {
+        //     if (std::isnan(Vguess(i)) || std::isinf(Vguess(i))) {
+        //         std::cout << "Bad Vguess" << std::endl;
+        //         assert(false);
+        //     }
+        // }
+        // for (int i = 0; i < 2*M*N; i++) {
+        //     for (int j = 0; j < 2*M*N; j++) {
+        //         if (std::isnan(G_ABCD.coeff(i, j)) || std::isinf(G_ABCD.coeff(i, j))) {
+        //             std::cout << "Bad G_ABCD" << std::endl;
+        //             assert(false);
+        //         }
+        //     }
+        // }
+        // for (int i = 0; i < M; i++) {
+        //     if (std::isnan(Vappwl1(i)) || std::isinf(Vappwl1(i))) {
+        //         std::cout << "Bad Vappwl1" << std::endl;
+        //         assert(false);
+        //     }
+        // }
+        // for (int i = 0; i < M; i++) {
+        //     if (std::isnan(Vappwl2(i)) || std::isinf(Vappwl2(i))) {
+        //         std::cout << "Bad Vappwl2" << std::endl;
+        //         assert(false);
+        //     }
+        // }
+        // for (int i = 0; i < N; i++) {
+        //     if (std::isnan(Vappbl1(i)) || std::isinf(Vappbl1(i))) {
+        //         std::cout << "Bad Vappbl1" << std::endl;
+        //         assert(false);
+        //     }
+        // }
+        // for (int i = 0; i < N; i++) {
+        //     if (std::isnan(Vappbl2(i)) || std::isinf(Vappbl2(i))) {
+        //         std::cout << "Bad Vappbl2" << std::endl;
+        //         assert(false);
+        //     }
+        // }
+        // if (std::isnan(Rswl1)) {
+        //     std::cout << "Bad Rswl1" << std::endl;
+        //     assert(false);
+        // }
+        // if (std::isnan(Rswl2)) {
+        //     std::cout << "Bad Rswl2" << std::endl;
+        //     assert(false);
+        // }
+        // if (std::isnan(Rsbl1)) {
+        //     std::cout << "Bad Rsbl1" << std::endl;
+        //     assert(false);
+        // }
+        // if (std::isnan(Rsbl2)) {
+        //     std::cout << "Bad Rsbl2" << std::endl;
+        //     assert(false);
+        // }
+        // if (std::isnan(Rwl)) {
+        //     std::cout << "Bad Rwl" << std::endl;
+        //     assert(false);
+        // }
+        // if (std::isnan(Rbl)) {
+        //     std::cout << "Bad Rbl" << std::endl;
+        //     assert(false);
+        // }
         
         // Calculate Vout
         Eigen::VectorXf Vout = solve_cam(G, Vguess, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl);
         Eigen::VectorXf Fv = Vout - Vguess;
 
         if (std::isnan(Fv.norm())) {
-            std::cout << Vguess << std::endl;
-            std::cout << G << std::endl;
+            std::cout << "Nan norm detected" << std::endl;
+            // std::cout << Vguess << std::endl;
+            // std::cout << G << std::endl;
             std::cout << Vappwl1 << std::endl;
             
             // std::ofstream outFile("out.txt");
@@ -432,6 +519,7 @@ Eigen::VectorXf fixedpoint_solve(
             // outFile << N << std::endl << std::endl;
             // outFile << G << std::endl << std::endl;
             // outFile << Vguess << std::endl << std::endl;
+            // outFile << G_ABCD.toDense() << std::endl << std::endl;
             // outFile << Vappwl1 << std::endl << std::endl;
             // outFile << Vappwl2 << std::endl << std::endl;
             // outFile << Vappbl1 << std::endl << std::endl;
@@ -446,6 +534,8 @@ Eigen::VectorXf fixedpoint_solve(
             // outFile.close();
 
             assert(false);
+            // flag = true;
+            // return Vguess;
         }
 
         if (print) { std::cout << "Norm: " << Fv.norm() << std::endl; }
@@ -507,9 +597,16 @@ int main(int argc, char* argv[]) {
     }
 
     for (int i = 0; i < runs; i++) {
-        float Vdd = 1.5;
+        float Vdd = 1.;
         Eigen::VectorXf Vappwl1 = Eigen::VectorXf::Random(M);
         Vappwl1 = (Vappwl1.array() > 0.5).select(Eigen::VectorXf::Constant(M, Vdd), Eigen::VectorXf::Zero(M));
+
+        if (runs == 1 && print && M == 16 && N == 16) {
+            Vappwl1 = Eigen::VectorXf::Zero(M);
+            Vappwl1(0) = 1.;
+            Vappwl1(12) = 1.;
+            Vappwl1(13) = 1.;
+        }
 
         // Vappwl1(0) = 0.5;
         // Vappwl1(1) = 1.;
@@ -540,6 +637,17 @@ int main(int argc, char* argv[]) {
         // Eigen::VectorXf Vout = broyden_inv_solve(RRAM, V, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, print);
 
         auto end_time = std::chrono::high_resolution_clock::now();
+
+        int it = 0;
+        while (flag) {
+            if (it >= 1) { assert(false); }
+
+            flag = false;
+            std::cout << "Nan detected (" << it << "), retrying..." << std::endl;
+
+            Vout = fixedpoint_solve(RRAM, Vout, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, true);
+            it += 1;
+        }
 
         auto execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
         std::cout << "Execution time: " << execution_time << " (ms)" << std::endl;

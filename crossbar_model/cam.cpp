@@ -140,6 +140,27 @@ Eigen::VectorXf solve_cam(
         std::cout << "E:\n" << E.toDense() << std::endl << std::endl;
     }
 
+    // for (int i = 0; i < 2*M*N; i++) {
+    //     if (std::isnan(V_guess(i)) || std::isinf(V_guess(i))) {
+    //         std::cout << "Bad Vguess" << std::endl;
+    //         assert(false);
+    //     }
+    // }
+    // for (int i = 0; i < 2*M*N; i++) {
+    //     for (int j = 0; j < 2*M*N; j++) {
+    //         if (std::isnan(G_ABCD.coeff(i, j)) || std::isinf(G_ABCD.coeff(i, j))) {
+    //             std::cout << "Bad G_ABCD" << std::endl;
+    //             assert(false);
+    //         }
+    //     }
+    // }
+    // for (int i = 0; i < 2*M*N; i++) {
+    //     if (std::isnan(E.coeff(i)) || std::isinf(E.coeff(i))) {
+    //         std::cout << "Bad E" << std::endl;
+    //         assert(false);
+    //     }
+    // }
+
     // Eigen::SparseLU<Eigen::SparseMatrix<float>> solver;
     // Eigen::ConjugateGradient<Eigen::SparseMatrix<float>> solver;
     Eigen::BiCGSTAB<Eigen::SparseMatrix<float>> solver;
@@ -158,6 +179,13 @@ Eigen::VectorXf solve_cam(
         std::cout << "Vb:\n" << V.tail(M*N) << std::endl << std::endl;
         std::cout << "V:\n" << V.head(M*N) - V.tail(M*N) << std::endl << std::endl;
     }
+
+    // for (int i = 0; i < 2*M*N; i++) {
+    //     if (std::isnan(V(i))) {
+    //         std::cout << "Bad V" << std::endl;
+    //         assert(false);
+    //     }
+    // }
 
     // Calculate Iout
     // std::vector<float> Iout;

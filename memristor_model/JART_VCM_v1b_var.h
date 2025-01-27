@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <vector>
 
 #ifndef M_PI
 #define M_PI 3.1415927  // Define M_PI if not defined
@@ -66,21 +67,21 @@ class JART_VCM_v1b_var {
         double Rtheff;    // thermal resistance
         double V_prev;    // previous applied voltage, used to check for voltage crossings
         double V_schottky_prev;
-        std::array<double, 3> solve_prev;
 
         double Nreal; // oxygen vacancy concentration of the disc region [nm]
 
         double phibn_out;
-        double V_solve_bottom;
-        double V_solve_top;
 
         void updateFilamentArea();
         void updateTemperature(double V_schottky, double V_discplugserial, double I_schottky);
-        double computeSchottkyCurrent(double V_schottky, bool print = false);
+        double computeSchottkyCurrent(double V_schottky);
         void updateResistance(double I_discplugserial);
         void updateConcentration(double I_ion, double dt);
         double computeIonCurrent(double V_applied, double V_schottky, double V_discplugserial);
-        std::array<double, 3> solve_system(double V_low, double V_high, double V_applied);
+        std::array<double, 3> solve_bisection(double V_low, double V_high, double V_applied);
+        void multi_solve_bisection(double V_low, double V_high, double V_applied, std::vector<std::array<double, 3>> &roots);
+        std::array<double, 3> solve_fixedpoint(double Vguess, double V_applied);
+        std::array<double, 3> solve_brent(double V_a, double V_b, double V_applied);
 
     // public:
         JART_VCM_v1b_var() {
@@ -95,13 +96,10 @@ class JART_VCM_v1b_var {
             eps_eff = eps * P_EPS0;
             epsphib_eff = epsphib * P_EPS0;
             V_prev = 0;
-            solve_prev = {0, 0, 0};
+            V_schottky_prev = 0;
             updateFilamentArea();
             updateResistance(0);
             updateTemperature(0, 0, 0);
-
-            V_solve_bottom = 0;
-            V_solve_top = 0;
         }
         double apply_voltage(double V_applied, double dt);
         double getResistance(double V_applied);
