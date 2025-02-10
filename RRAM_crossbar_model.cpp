@@ -12,7 +12,8 @@
 #include <limits>
 // #include <cmath>
 
-float norm = 0;
+float avg_norm = 0;
+int avg_it = 0;
 bool flag = false;
 
 // The crossbar solver assumes all devices to be linear. However, the memristor model is nonlinear
@@ -121,16 +122,17 @@ bool flag = false;
 // This is possibly due to less iterations per solver being run
 // Perhaps the remainder of this bug is related to similar history based behaviour, although I can not find any
 
+// For the life of me I can't find the bug, so I've solved it differently
+// Whenever a NAN is detected instead of crashing I give Vguess a tiny nudge and try again
+// This seems to circomvent the bug
+// In all cases I've seen only one nudge is required to continue proper execution and finding of a solution
+// Actually, I've seen it happen once that it falls into a 'nudge loop' while testing for 16x16 with the newton-raphson method
+// In this case, the iteration count still counts up untill it reaches it_max and returns Vguess
+// Although it should be noted that Vguess at that point might be a very poor result
+
 // There are two variations: the 'good' and 'bad' Broyden's methods
 // The 'bad' method seems way faster, thus has been used for results
-// Measurements are from 1 run without optimization
-// Often not able to reach criterion
-// For 3x3: 2 iterations, 7 ms
-// For 8x8: 1.49084e-05 norm, 306 ms
-// For 16x16: 1.72063e-05 norm, 1402 ms
-// For 32x32: 0.00140215 norm, 13145 ms
-// For 64x64: 0.00852754 norm, 158731 ms
-// The 'good' method seems slower than the non-inverse Broyden's method, whic does not make senseto me, so I assume there is a bug
+// The 'good' method seems slower than the non-inverse Broyden's method, which does not make senseto me, so I assume there is a bug
 Eigen::VectorXf broyden_inv_solve(
     std::vector<std::vector<JART_VCM_v1b_var>> RRAM,
     Eigen::VectorXf Vguess, Eigen::SparseMatrix<float> G_ABCD,
@@ -165,8 +167,22 @@ Eigen::VectorXf broyden_inv_solve(
     int it_max = 100;
     int it = 0;
     while (true) {
+        if (std::isnan(Fv.norm())) {
+            std::cout << "Nan norm detected, giving tiny nudge" << std::endl;
+
+            for (int i = 0; i < Vguess.size(); i++) {
+                Vguess(i) += 1e-6 * ((Vguess(i) < 0) - (Vguess(i) > 0));
+            }
+
+            if (it >= it_max) {
+                return Vguess;
+            }
+
+            it++;
+            continue;
+        }
+
         if (print) { std::cout << "Norm: " << Fv.norm() << std::endl; }
-        if (std::isnan(Fv.norm())) { assert(false); }
         // Check for convergence
         if (Fv.norm() < 1e-6 || it >= it_max) {
             if (print) {
@@ -180,7 +196,8 @@ Eigen::VectorXf broyden_inv_solve(
                     std::cout << "Solved in " << it << " iterations" << std::endl;
                 }
             }
-            norm += Fv.norm();
+            avg_norm += Fv.norm();
+            avg_it += it;
             return Vout;
         }
 
@@ -205,8 +222,8 @@ Eigen::VectorXf broyden_inv_solve(
         Eigen::VectorXf dF = Fv_new - Fv;
 
         // Update inverse Jacobian
-        // B += ((dV - B * dF) / (dV.transpose() * B * dF + 1e-12)) * dV.transpose() * B;
-        B += ((dV - B * dF) / (dF.squaredNorm() + 1e-12)) * dF.transpose();
+        B += ((dV - B * dF) / (dV.transpose() * B * dF + 1e-12)) * dV.transpose() * B; // 'Good' method
+        // B += ((dV - B * dF) / (dF.squaredNorm() + 1e-12)) * dF.transpose(); // 'Bad' method
 
         Fv = Fv_new;
 
@@ -214,12 +231,6 @@ Eigen::VectorXf broyden_inv_solve(
     }
 }
 
-// Often not able to reach criterion
-// Measurements are from 1 run without optimization
-// For 3x3: 1.05438e-05 norm, 47 ms
-// For 8x8: 4.41772e-05 norm, 766 ms
-// For 16x16: 0.000429604 norm, 22821 ms
-// For 32x32: 0.000861001 norm, 1295795 ms
 Eigen::VectorXf broyden_solve(
     std::vector<std::vector<JART_VCM_v1b_var>> RRAM,
     Eigen::VectorXf Vguess, Eigen::SparseMatrix<float> G_ABCD,
@@ -254,8 +265,22 @@ Eigen::VectorXf broyden_solve(
     int it_max = 100;
     int it = 0;
     while (true) {
+        if (std::isnan(Fv.norm())) {
+            std::cout << "Nan norm detected, giving tiny nudge" << std::endl;
+
+            for (int i = 0; i < Vguess.size(); i++) {
+                Vguess(i) += 1e-6 * ((Vguess(i) < 0) - (Vguess(i) > 0));
+            }
+
+            if (it >= it_max) {
+                return Vguess;
+            }
+
+            it++;
+            continue;
+        }
+
         if (print) { std::cout << "Norm: " << Fv.norm() << std::endl; }
-        if (std::isnan(Fv.norm())) { assert(false); }
         // Check for convergence
         if (Fv.norm() < 1e-6 || it >= it_max) {
             if (print) {
@@ -269,7 +294,8 @@ Eigen::VectorXf broyden_solve(
                     std::cout << "Solved in " << it << " iterations" << std::endl;
                 }
             }
-            norm += Fv.norm();
+            avg_norm += Fv.norm();
+            avg_it = it;
             return Vout;
         }
 
@@ -301,11 +327,6 @@ Eigen::VectorXf broyden_solve(
     }
 }
 
-// Often not able to reach criterion
-// Measurements are from 1 run without optimization
-// For 3x3: 1.95541e-05 norm, 191 ms
-// For 8x8: 0.000301343 norm, 19377 ms
-// For 16x16: 0.00281188 norm, 380014 ms (Seems very unstable)
 Eigen::VectorXf newton_raphson_solve(
     std::vector<std::vector<JART_VCM_v1b_var>> RRAM,
     Eigen::VectorXf Vguess, Eigen::SparseMatrix<float> G_ABCD,
@@ -338,8 +359,22 @@ Eigen::VectorXf newton_raphson_solve(
         Eigen::VectorXf Vout = solve_cam(G, Vguess, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl);
         Eigen::VectorXf Fv = Vout - Vguess;
 
+        if (std::isnan(Fv.norm())) {
+            std::cout << "Nan norm detected, giving tiny nudge" << std::endl;
+
+            for (int i = 0; i < Vguess.size(); i++) {
+                Vguess(i) += 1e-6 * ((Vguess(i) < 0) - (Vguess(i) > 0));
+            }
+
+            if (it >= it_max) {
+                return Vguess;
+            }
+
+            it++;
+            continue;
+        }
+
         if (print) { std::cout << "Norm: " << Fv.norm() << std::endl; }
-        if (std::isnan(Fv.norm())) { assert(false); }
         // Check convergence
         if (Fv.norm() < 1e-6 || it >= it_max) {
             if (print) {
@@ -353,7 +388,8 @@ Eigen::VectorXf newton_raphson_solve(
                     std::cout << "Solved in " << it << " iterations" << std::endl;
                 }
             }
-            norm += Fv.norm();
+            avg_norm += Fv.norm();
+            avg_it = it;
             return Vout;
         }
 
@@ -387,15 +423,6 @@ Eigen::VectorXf newton_raphson_solve(
     }
 }
 
-// Tested up to 128 x 128
-// Often not able to reach criterion
-// Measurements are from 1 run without optimization
-// For 3x3: solved in 10 it, 7 ms
-// For 8x8: 0.000178692 norm, 505 ms (Sometimes solved in 10-12 iterations)
-// For 16x16: 0.000890559 norm, 1356 ms (Very rarely returns NAN with O3 optimization)
-// For 32x32: 0.00446302 norm, 4439 ms (Very rarely returns NAN with O3 optimization)
-// For 64x64: 0.0255631 norm, 24641 ms
-// For 128x128: 0.00284336 norm, 136759 ms (Often stalls or returns NANs)
 Eigen::VectorXf fixedpoint_solve(
     std::vector<std::vector<JART_VCM_v1b_var>> RRAM,
     Eigen::VectorXf Vguess, Eigen::SparseMatrix<float> G_ABCD,
@@ -420,122 +447,27 @@ Eigen::VectorXf fixedpoint_solve(
         for (int i = 0; i < M; i++) {
             for (int j = 0; j < N; j++) {
                 float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
-                // if (print) {
-                //     std::cout << i << " " << j << " " << v << std::endl;
-                // }
                 G(i, j) = (float) 1./RRAM[i][j].getResistance(v);
             }
         }
-
-        // for (int i = 0; i < M; i++) {
-        //     for (int j = 0; j < N; j++) {
-        //         if (std::isnan(G(i, j)) || std::isinf(G(i, j))) {
-        //             std::cout << "Bad G" << std::endl;
-        //             assert(false);
-        //         }
-        //     }
-        // }
-        // for (int i = 0; i < 2*M*N; i++) {
-        //     if (std::isnan(Vguess(i)) || std::isinf(Vguess(i))) {
-        //         std::cout << "Bad Vguess" << std::endl;
-        //         assert(false);
-        //     }
-        // }
-        // for (int i = 0; i < 2*M*N; i++) {
-        //     for (int j = 0; j < 2*M*N; j++) {
-        //         if (std::isnan(G_ABCD.coeff(i, j)) || std::isinf(G_ABCD.coeff(i, j))) {
-        //             std::cout << "Bad G_ABCD" << std::endl;
-        //             assert(false);
-        //         }
-        //     }
-        // }
-        // for (int i = 0; i < M; i++) {
-        //     if (std::isnan(Vappwl1(i)) || std::isinf(Vappwl1(i))) {
-        //         std::cout << "Bad Vappwl1" << std::endl;
-        //         assert(false);
-        //     }
-        // }
-        // for (int i = 0; i < M; i++) {
-        //     if (std::isnan(Vappwl2(i)) || std::isinf(Vappwl2(i))) {
-        //         std::cout << "Bad Vappwl2" << std::endl;
-        //         assert(false);
-        //     }
-        // }
-        // for (int i = 0; i < N; i++) {
-        //     if (std::isnan(Vappbl1(i)) || std::isinf(Vappbl1(i))) {
-        //         std::cout << "Bad Vappbl1" << std::endl;
-        //         assert(false);
-        //     }
-        // }
-        // for (int i = 0; i < N; i++) {
-        //     if (std::isnan(Vappbl2(i)) || std::isinf(Vappbl2(i))) {
-        //         std::cout << "Bad Vappbl2" << std::endl;
-        //         assert(false);
-        //     }
-        // }
-        // if (std::isnan(Rswl1)) {
-        //     std::cout << "Bad Rswl1" << std::endl;
-        //     assert(false);
-        // }
-        // if (std::isnan(Rswl2)) {
-        //     std::cout << "Bad Rswl2" << std::endl;
-        //     assert(false);
-        // }
-        // if (std::isnan(Rsbl1)) {
-        //     std::cout << "Bad Rsbl1" << std::endl;
-        //     assert(false);
-        // }
-        // if (std::isnan(Rsbl2)) {
-        //     std::cout << "Bad Rsbl2" << std::endl;
-        //     assert(false);
-        // }
-        // if (std::isnan(Rwl)) {
-        //     std::cout << "Bad Rwl" << std::endl;
-        //     assert(false);
-        // }
-        // if (std::isnan(Rbl)) {
-        //     std::cout << "Bad Rbl" << std::endl;
-        //     assert(false);
-        // }
         
         // Calculate Vout
         Eigen::VectorXf Vout = solve_cam(G, Vguess, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl);
         Eigen::VectorXf Fv = Vout - Vguess;
 
         if (std::isnan(Fv.norm())) {
-            std::cout << "Nan norm detected" << std::endl;
-            // std::cout << Vguess << std::endl;
-            // std::cout << G << std::endl;
-            std::cout << Vappwl1 << std::endl;
-            
-            // std::ofstream outFile("out.txt");
+            std::cout << "Nan norm detected, giving tiny nudge" << std::endl;
 
-            // if (!outFile) {
-            //     std::cout << "No out file" << std::endl;
-            //     assert(false);
-            // }
+            for (int i = 0; i < Vguess.size(); i++) {
+                Vguess(i) += 1e-6 * ((Vguess(i) < 0) - (Vguess(i) > 0));
+            }
 
-            // outFile << M << std::endl;
-            // outFile << N << std::endl << std::endl;
-            // outFile << G << std::endl << std::endl;
-            // outFile << Vguess << std::endl << std::endl;
-            // outFile << G_ABCD.toDense() << std::endl << std::endl;
-            // outFile << Vappwl1 << std::endl << std::endl;
-            // outFile << Vappwl2 << std::endl << std::endl;
-            // outFile << Vappbl1 << std::endl << std::endl;
-            // outFile << Vappbl2 << std::endl << std::endl;
-            // outFile << Rswl1 << std::endl;
-            // outFile << Rswl2 << std::endl;
-            // outFile << Rsbl1 << std::endl;
-            // outFile << Rsbl2 << std::endl;
-            // outFile << Rwl << std::endl;
-            // outFile << Rbl << std::endl;
+            if (it >= it_max) {
+                return Vguess;
+            }
 
-            // outFile.close();
-
-            assert(false);
-            // flag = true;
-            // return Vguess;
+            it++;
+            continue;
         }
 
         if (print) { std::cout << "Norm: " << Fv.norm() << std::endl; }
@@ -552,7 +484,9 @@ Eigen::VectorXf fixedpoint_solve(
                     std::cout << "Solved in " << it << " iterations" << std::endl;
                 }
             }
-            norm += Fv.norm();
+            avg_norm += Fv.norm();
+            avg_it += it;
+
             return Vout;
         }
 
@@ -608,13 +542,6 @@ int main(int argc, char* argv[]) {
             Vappwl1(13) = 1.;
         }
 
-        // Vappwl1(0) = 0.5;
-        // Vappwl1(1) = 1.;
-        // Vappwl1(2) = 1.5;
-        // Vappwl1 = Eigen::VectorXf::Zero(M);
-        // Vappwl1(12) = Vdd;
-        // Vappwl1(14) = Vdd;
-
         Eigen::VectorXf Vappwl2 = Eigen::VectorXf::Zero(M);
         Eigen::VectorXf Vappbl1 = Eigen::VectorXf::Zero(M);
         Eigen::VectorXf Vappbl2 = Eigen::VectorXf::Zero(M);
@@ -631,22 +558,22 @@ int main(int argc, char* argv[]) {
         }
         auto start_time = std::chrono::high_resolution_clock::now();
 
-        Eigen::VectorXf Vout = fixedpoint_solve(RRAM, V, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, print);
+        // Eigen::VectorXf Vout = fixedpoint_solve(RRAM, V, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, print);
         // Eigen::VectorXf Vout = newton_raphson_solve(RRAM, V, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, print);
         // Eigen::VectorXf Vout = broyden_solve(RRAM, V, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, print);
-        // Eigen::VectorXf Vout = broyden_inv_solve(RRAM, V, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, print);
+        Eigen::VectorXf Vout = broyden_inv_solve(RRAM, V, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, print);
 
         auto end_time = std::chrono::high_resolution_clock::now();
 
-        int it = 0;
-        while (flag) {
-            if (it >= 1) { assert(false); }
-
-            flag = false;
-            std::cout << "Nan detected (" << it << "), retrying..." << std::endl;
-
-            Vout = fixedpoint_solve(RRAM, Vout, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, true);
-            it += 1;
+        for (int i = 0; i < Vout.size(); i++) {
+            if (std::isnan(Vout(i))) {
+                std::cout << "NAN detected" << std::endl;
+                assert(false);
+            }
+            if (std::isinf(Vout(i))) {
+                std::cout << "Inf detected" << std::endl;
+                assert(false);
+            }
         }
 
         auto execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
@@ -681,6 +608,7 @@ int main(int argc, char* argv[]) {
     
     if (runs > 1) {
         std::cout << "Average execution time: " << total_time/runs << " ms" << std::endl;
-        std::cout << "Average norm: " << norm/runs << std::endl;
+        std::cout << "Average norm: " << avg_norm/runs << std::endl;
+        std::cout << "Average iterations: " << (float) avg_it/runs << std::endl;
     }
 }

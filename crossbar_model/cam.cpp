@@ -14,7 +14,6 @@ Eigen::VectorXf solve_cam(
     const float Rwl, const float Rbl,
     const bool print
     ) {
-    // auto start_time = std::chrono::high_resolution_clock::now();
 
     int M = G.rows();
     int N = G.cols();
@@ -26,13 +25,6 @@ Eigen::VectorXf solve_cam(
 
     float Gwl = 1/Rwl;
     float Gbl = 1/Rbl;
-
-    // Eigen::SparseMatrix<float> G_ABCD(2*M*N, 2*M*N);
-
-    // auto timestamp1 = std::chrono::high_resolution_clock::now();
-    // auto execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp1 - start_time).count();
-    // std::cout << "Setup time: " << execution_time << " (ms)" << std::endl;
-    // timestamp1 = std::chrono::high_resolution_clock::now();
 
     // Submatrix A
     for (int i = 0; i < M; i++) {
@@ -52,11 +44,6 @@ Eigen::VectorXf solve_cam(
         }
     }
 
-    // auto timestamp2 = std::chrono::high_resolution_clock::now();
-    // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp2 - timestamp1).count();
-    // std::cout << "Submatrix A time: " << execution_time << " (ms)" << std::endl;
-    // timestamp2 = std::chrono::high_resolution_clock::now();
-
     // Submatrix B
     for (int i = 0; i < M; i++) {
         for (int j = 0; j < N; j++) {
@@ -65,11 +52,6 @@ Eigen::VectorXf solve_cam(
         }
     }
 
-    // auto timestamp3 = std::chrono::high_resolution_clock::now();
-    // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp3 - timestamp2).count();
-    // std::cout << "Submatrix B time: " << execution_time << " (ms)" << std::endl;
-    // timestamp3 = std::chrono::high_resolution_clock::now();
-
     // Submatrix C
     for (int i = 0; i < M; i++) {
         for (int j = 0; j < N; j++) {
@@ -77,11 +59,6 @@ Eigen::VectorXf solve_cam(
             G_ABCD.coeffRef(i*N + j + M*N, i*N + j) += G(i, j);
         }
     }
-
-    // auto timestamp4 = std::chrono::high_resolution_clock::now();
-    // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp4 - timestamp3).count();
-    // std::cout << "Submatrix C time: " << execution_time << " (ms)" << std::endl;
-    // timestamp4 = std::chrono::high_resolution_clock::now();
 
     // Submatrix D
     for (int i = 0; i < M; i++) {
@@ -100,11 +77,6 @@ Eigen::VectorXf solve_cam(
             // }
         }
     }
-
-    // auto timestamp5 = std::chrono::high_resolution_clock::now();
-    // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp5 - timestamp4).count();
-    // std::cout << "Submatrix D time: " << execution_time << " (ms)" << std::endl;
-    // timestamp5 = std::chrono::high_resolution_clock::now();
 
     if (print) {
         std::cout << "G_ABCD:\n" << G_ABCD.toDense() << std::endl << std::endl;
@@ -130,36 +102,10 @@ Eigen::VectorXf solve_cam(
             }
         }
     }
-
-    // auto timestamp6 = std::chrono::high_resolution_clock::now();
-    // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp6 - timestamp5).count();
-    // std::cout << "Matrix E time: " << execution_time << " (ms)" << std::endl;
-    // timestamp6 = std::chrono::high_resolution_clock::now();
     
     if (print) {
         std::cout << "E:\n" << E.toDense() << std::endl << std::endl;
     }
-
-    // for (int i = 0; i < 2*M*N; i++) {
-    //     if (std::isnan(V_guess(i)) || std::isinf(V_guess(i))) {
-    //         std::cout << "Bad Vguess" << std::endl;
-    //         assert(false);
-    //     }
-    // }
-    // for (int i = 0; i < 2*M*N; i++) {
-    //     for (int j = 0; j < 2*M*N; j++) {
-    //         if (std::isnan(G_ABCD.coeff(i, j)) || std::isinf(G_ABCD.coeff(i, j))) {
-    //             std::cout << "Bad G_ABCD" << std::endl;
-    //             assert(false);
-    //         }
-    //     }
-    // }
-    // for (int i = 0; i < 2*M*N; i++) {
-    //     if (std::isnan(E.coeff(i)) || std::isinf(E.coeff(i))) {
-    //         std::cout << "Bad E" << std::endl;
-    //         assert(false);
-    //     }
-    // }
 
     // Eigen::SparseLU<Eigen::SparseMatrix<float>> solver;
     // Eigen::ConjugateGradient<Eigen::SparseMatrix<float>> solver;
@@ -169,23 +115,11 @@ Eigen::VectorXf solve_cam(
     // Eigen::VectorXf V = solver.solve(E);
     Eigen::VectorXf V = solver.solveWithGuess(E.toDense(), V_guess);
 
-    // auto timestamp7 = std::chrono::high_resolution_clock::now();
-    // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp7 - timestamp6).count();
-    // std::cout << "Solve time: " << execution_time << " (ms)" << std::endl;
-    // timestamp7 = std::chrono::high_resolution_clock::now();
-
     if (print) {
         std::cout << "Va:\n" << V.head(M*N) << std::endl << std::endl;
         std::cout << "Vb:\n" << V.tail(M*N) << std::endl << std::endl;
         std::cout << "V:\n" << V.head(M*N) - V.tail(M*N) << std::endl << std::endl;
     }
-
-    // for (int i = 0; i < 2*M*N; i++) {
-    //     if (std::isnan(V(i))) {
-    //         std::cout << "Bad V" << std::endl;
-    //         assert(false);
-    //     }
-    // }
 
     // Calculate Iout
     // std::vector<float> Iout;
@@ -196,10 +130,6 @@ Eigen::VectorXf solve_cam(
     //     }
     //     Iout.push_back(Ioutj);
     // }
-
-    // // auto end_time = std::chrono::high_resolution_clock::now();
-    // // execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - timestamp7).count();
-    // // std::cout << "Iout time: " << execution_time << " (ms)" << std::endl;
 
     // return Iout;
 
