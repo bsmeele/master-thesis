@@ -1,4 +1,4 @@
-#include "cam.h"
+#include "crossbar_array_model.h"
 
 #include <iostream>
 #include <chrono>
@@ -7,11 +7,11 @@
 #include <sstream>
 #include <fstream>
 
-void load_from_file(
+void LoadFromFile(
     std::string filepath,
     int& M, int& N,
     Eigen::MatrixXf& G,
-    Eigen::VectorXf& V_guess, Eigen::SparseMatrix<float>& G_ABCD,
+    Eigen::VectorXf& Vguess, Eigen::SparseMatrix<float>& G_ABCD,
     Eigen::VectorXf& Vappwl1, Eigen::VectorXf& Vappwl2,
     Eigen::VectorXf& Vappbl1, Eigen::VectorXf& Vappbl2,
     float& Rswl1, float& Rswl2, float& Rsbl1, float& Rsbl2,
@@ -25,7 +25,7 @@ void load_from_file(
     }
 
     G.setZero();
-    V_guess.setZero();
+    Vguess.setZero();
     G_ABCD.setZero();
     Vappwl1.setZero();
     Vappwl2.setZero();
@@ -63,7 +63,7 @@ void load_from_file(
                 }
                 break;
             case 3:
-                V_guess(flag2) = std::stof(line);
+                Vguess(flag2) = std::stof(line);
                 flag2 += 1;
                 if (flag2 == 2*M*N) {
                     flag = 4;
@@ -170,7 +170,7 @@ int main(int argc, char* argv[]) {
     float Rwl = 3.;
     float Rbl = 2.;
 
-    Eigen::SparseMatrix<float> G_ABCD = partially_precompute_G_ABCD(M, N, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl);
+    Eigen::SparseMatrix<float> G_ABCD = PartiallyPrecomputeG_ABCD(M, N, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl);
 
     for (int i = 0; i < runs; i++) {
         float Rmin = 100.;
@@ -241,7 +241,7 @@ int main(int argc, char* argv[]) {
 
         auto start_time = std::chrono::high_resolution_clock::now();
 
-        Eigen::VectorXf Vout = solve_cam(G, V, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, false);
+        Eigen::VectorXf Vout = SolveCam(G, V, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, false);
 
         auto end_time = std::chrono::high_resolution_clock::now();
 

@@ -17,9 +17,9 @@ int main() {
     // Simulation time of 8 seconds
     // Maximum step size of 3 ms
 
-    std::ofstream outFile("out.txt");
+    std::ofstream outfile("out.txt");
 
-    if (!outFile) {
+    if (!outfile) {
         std::cout << "No out file" << std::endl;
         return 1;
     }
@@ -28,25 +28,25 @@ int main() {
 
     const double dt = 1e-3;
 
-    std::vector<std::array<double, 2>> V_wave;
-    V_wave.push_back({0, 0});
-    V_wave.push_back({-1.5, 1.5});
-    V_wave.push_back({0, 3});
-    V_wave.push_back({1.5, 4.5});
-    V_wave.push_back({0, 6});
+    std::vector<std::array<double, 2>> Vwave;
+    Vwave.push_back({0, 0});
+    Vwave.push_back({-1.5, 1.5});
+    Vwave.push_back({0, 3});
+    Vwave.push_back({1.5, 4.5});
+    Vwave.push_back({0, 6});
 
-    double V = V_wave[0][0];
-    double t = V_wave[0][1];
+    double V = Vwave[0][0];
+    double t = Vwave[0][1];
 
-    outFile << "t V I Nreal Treal Vschottky Vdiscplugserial Rschottky Rdisc Rplug Rseries Rtotal" << std::endl;
+    outfile << "t V I Nreal Treal Vschottky Vdiscplugserial Rschottky Rdisc Rplug Rseries Rtotal" << std::endl;
 
-    for (int i = 1; i < V_wave.size(); i++) {
-        double dv = (V_wave[i][0] - V) / ((V_wave[i][1] - t) / dt);
-        while (t < V_wave[i][1]) {
+    for (int i = 1; i < Vwave.size(); i++) {
+        double dv = (Vwave[i][0] - V) / ((Vwave[i][1] - t) / dt);
+        while (t < Vwave[i][1]) {
             double I;
-            I = memristor.apply_voltage(V, dt);
+            I = memristor.ApplyVoltage(V, dt);
             if (std::isnan(I)) { return 1; }
-            outFile << t << " " << V << " " << I << " " << memristor.Nreal << " " << memristor.Treal
+            outfile << t << " " << V << " " << I << " " << memristor.Nreal << " " << memristor.Treal
             << " " << (V - (memristor.Rdisc + memristor.Rplug + memristor.Rseries) * I) << " " << (memristor.Rdisc + memristor.Rplug + memristor.Rseries) * I
             << " " << (V - (memristor.Rdisc + memristor.Rplug + memristor.Rseries) * I)/I << " " << memristor.Rdisc << " " << memristor.Rplug << " " << memristor.Rseries
             << " " << V/I
@@ -56,5 +56,5 @@ int main() {
         }
     }
 
-    outFile.close();
+    outfile.close();
 }

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef JART_VCM_v1b_var_H_
+#define JART_VCM_v1b_var_H_
 
 #include <array>
 #include <vector>
@@ -72,16 +73,16 @@ class JART_VCM_v1b_var {
 
         double phibn_out;
 
-        void updateFilamentArea();
-        void updateTemperature(double V_schottky, double V_discplugserial, double I_schottky);
-        double computeSchottkyCurrent(double V_schottky);
-        void updateResistance(double I_discplugserial);
-        void updateConcentration(double I_ion, double dt);
-        double computeIonCurrent(double V_applied, double V_schottky, double V_discplugserial);
-        std::array<double, 3> solve_bisection(double V_low, double V_high, double V_applied);
-        void multi_solve_bisection(double V_low, double V_high, double V_applied, std::vector<std::array<double, 3>> &roots);
-        std::array<double, 3> solve_fixedpoint(double Vguess, double V_applied);
-        std::array<double, 3> solve_brent(double V_a, double V_b, double V_applied);
+        void UpdateFilamentArea();
+        void UpdateTemperature(double V_schottky, double V_discplugserial, double I_schottky);
+        double ComputeSchottkyCurrent(double V_schottky);
+        void UpdateResistance(double I_discplugserial);
+        void UpdateConcentration(double I_ion, double dt);
+        double ComputeIonCurrent(double V_applied, double V_schottky, double V_discplugserial);
+        std::array<double, 3> SolveBisection(double V_low, double V_high, double V_applied);
+        void MultiSolveBisection(double V_low, double V_high, double V_applied, std::vector<std::array<double, 3>> &roots);
+        std::array<double, 3> SolveFixedpoint(double Vguess, double V_applied);
+        std::array<double, 3> SolveBrent(double V_a, double V_b, double V_applied);
 
     // public:
         JART_VCM_v1b_var() {
@@ -97,10 +98,12 @@ class JART_VCM_v1b_var {
             epsphib_eff = epsphib * P_EPS0;
             V_prev = 0;
             V_schottky_prev = 0;
-            updateFilamentArea();
-            updateResistance(0);
-            updateTemperature(0, 0, 0);
+            UpdateFilamentArea();
+            UpdateResistance(0);
+            UpdateTemperature(0, 0, 0);
         }
-        double apply_voltage(double V_applied, double dt);
-        double getResistance(double V_applied);
+        double ApplyVoltage(double V_applied, double dt);
+        double GetResistance(double V_applied);
 };
+
+#endif  // JART_VCM_v1b_var_H_

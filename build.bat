@@ -11,7 +11,8 @@ g++ -std=c++17 -O3 ^
 -I .\crossbar_model\ ^
 -I .\memristor_model\ ^
 RRAM_crossbar_model.cpp ^
-.\crossbar_model\cam.cpp ^
+main.cpp ^
+.\crossbar_model\crossbar_array_model.cpp ^
 .\memristor_model\JART_VCM_v1b_var.cpp ^
 -o %OUTPUT%
 
