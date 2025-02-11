@@ -560,7 +560,9 @@ double JART_VCM_v1b_var::ApplyVoltage(double V_applied, double dt) {
     if (dt != 0) {
         V_prev = V_applied;
         V_schottky_prev = V_schottky;
-    } else { return I_schottky; }
+    } else {
+        return I_schottky;
+    }
 
     double I_ion = ComputeIonCurrent(V_applied, V_schottky, V_discplugserial);
     double N_before = Nreal;

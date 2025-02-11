@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <chrono>
+#include <fstream>
 
 int main(int argc, char* argv[]) {
     srand((unsigned int) time(0));
@@ -45,16 +46,16 @@ int main(int argc, char* argv[]) {
         Eigen::VectorXf Vappwl1 = Eigen::VectorXf::Random(M);
         Vappwl1 = (Vappwl1.array() > 0.5).select(Eigen::VectorXf::Constant(M, Vdd), Eigen::VectorXf::Zero(M));
 
-        if (runs == 1 && print && M == 16 && N == 16) {
-            Vappwl1 = Eigen::VectorXf::Zero(M);
-            Vappwl1(0) = 1.;
-            Vappwl1(12) = 1.;
-            Vappwl1(13) = 1.;
-        }
+        Eigen::VectorXf Vappbl2 = Eigen::VectorXf::Random(M);
+        Vappwl1 = (Vappbl2.array() > 0.5).select(Eigen::VectorXf::Constant(M, Vdd), Eigen::VectorXf::Zero(M));
+
+        // if (runs == 1 && print && M == 16 && N == 16) {
+        //     Vappwl1 = Eigen::VectorXf::Zero(M);
+        //     Vappbl2 = Eigen::VectorXf::Zero(M);
+        // }
 
         Eigen::VectorXf Vappwl2 = Eigen::VectorXf::Zero(M);
         Eigen::VectorXf Vappbl1 = Eigen::VectorXf::Zero(M);
-        Eigen::VectorXf Vappbl2 = Eigen::VectorXf::Zero(M);
 
         if (print) {
             std::cout << "Vappwl1:\n" << Vappwl1 << std::endl << std::endl;
@@ -121,4 +122,81 @@ int main(int argc, char* argv[]) {
         // std::cout << "Average norm: " << avg_norm/runs << std::endl;
         // std::cout << "Average iterations: " << (float) avg_it/runs << std::endl;
     }
+
+
+
+    // std::ofstream outfile("out.txt");
+
+    // if (!outfile) {
+    //     std::cout << "No out file" << std::endl;
+    //     return 1;
+    // }
+
+    // const double dt = 1e-3;
+    
+    // Eigen::VectorXf Vappwl1 = Eigen::VectorXf::Zero(M);
+    // Eigen::VectorXf Vappwl2 = Eigen::VectorXf::Zero(M);
+    // Eigen::VectorXf Vappbl1 = Eigen::VectorXf::Zero(M);
+    // Eigen::VectorXf Vappbl2 = Eigen::VectorXf::Zero(M);
+
+    // std::vector<std::array<double, 2>> Vwave;
+    // Vwave.push_back({0, 0});
+    // Vwave.push_back({-1.5, 1.5});
+    // Vwave.push_back({0, 3});
+    // Vwave.push_back({1.5, 4.5});
+    // Vwave.push_back({0, 6});
+
+    // Vappwl1(M-1) = Vwave[0][0];
+    // double t = Vwave[0][1];
+
+    // Eigen::VectorXf V = Eigen::VectorXf::Zero(2*M*N);
+
+    // outfile << "t V I Nreal Treal Vschottky Vdiscplugserial Rschottky Rdisc Rplug Rseries Rtotal" << std::endl;
+
+    // for (int i = 1; i < Vwave.size(); i++) {
+    //     double dv = (Vwave[i][0] - Vappwl1(M-1)) / ((Vwave[i][1] - t) / dt);
+    //     while (t < Vwave[i][1]) {
+    //         V = FixedpointSolve(RRAM, V, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, print);
+
+    //         for (int i = 0; i < V.size(); i++) {
+    //             if (std::isnan(V(i))) {
+    //                 std::cout << "NAN detected" << std::endl;
+    //                 assert(false);
+    //             }
+    //             if (std::isinf(V(i))) {
+    //                 std::cout << "Inf detected" << std::endl;
+    //                 assert(false);
+    //             }
+    //         }
+
+    //         for (int i = 0; i < M; i++) {
+    //             for (int j = 0; j < N; j++) {
+    //                 float v = V(i*N + j) - V(i*N + j + M*N);
+    //                 double I = RRAM[i][j].ApplyVoltage(v, dt);
+
+    //                 if (std::isnan(I)) {
+    //                     std::cout << "NAN detected" << std::endl;
+    //                     assert(false);
+    //                 }
+    //                 if (std::isinf(I)) {
+    //                     std::cout << "Inf detected" << std::endl;
+    //                     assert(false);
+    //                 }
+
+    //                 if (i == M-1 && j == 0) {
+    //                     outfile << t << " " << v << " " << I << " " << RRAM[i][j].Nreal << " " << RRAM[i][j].Treal
+    //                     << " " << (v - (RRAM[i][j].Rdisc + RRAM[i][j].Rplug + RRAM[i][j].Rseries) * I) << " " << (RRAM[i][j].Rdisc + RRAM[i][j].Rplug + RRAM[i][j].Rseries) * I
+    //                     << " " << (v - (RRAM[i][j].Rdisc + RRAM[i][j].Rplug + RRAM[i][j].Rseries) * I)/I << " " << RRAM[i][j].Rdisc << " " << RRAM[i][j].Rplug << " " << RRAM[i][j].Rseries
+    //                     << " " << v/I
+    //                     << std::endl;
+    //                 }
+    //             }
+    //         }
+
+    //         Vappwl1(M-1) += dv;
+    //         t += dt;
+    //     }
+    // }
+
+    // outfile.close();
 }

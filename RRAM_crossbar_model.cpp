@@ -380,6 +380,7 @@ Eigen::VectorXf FixedpointSolve(
         // In the case a 'nudge loop' is encountered, the best guess up untill that point is returned
         if (std::isnan(Fv.norm())) {
             if (print) { std::cout << "Nan norm detected, giving tiny nudge" << std::endl; }
+            std::cout << "Nan norm detected, giving tiny nudge" << std::endl;
 
             for (int i = 0; i < Vguess.size(); i++) {
                 Vguess(i) += 1e-6 * ((Vguess(i) < 0) - (Vguess(i) > 0));

@@ -3,8 +3,7 @@ import csv
 
 def main():
     file_path = 'out.txt'
-    file_path2 = 'out2.txt'
-    file_path3 = 'out3.txt'
+    # file_path = 'out_16x16_bottom_left.txt'
     file_path4 = 'all-signals-no-var.csv'
 
     t = []  # Time
@@ -356,7 +355,7 @@ def main():
 
     plt.subplot(2, 2, 1)
     plt.plot(V, I_abs, '-', markersize=2, label='C++', color='blue')
-    plt.plot(c_AE, c_IAE_abs, markersize=2, label='Cadence', color='orange')
+    # plt.plot(c_AE, c_IAE_abs, markersize=2, label='Cadence', color='orange')
     plt.yscale('log')
     plt.xlim(min(V), max(V))
     plt.ylim(1e-8, max(I)*2)
@@ -368,7 +367,7 @@ def main():
 
     plt.subplot(2, 2, 2)
     plt.plot(t, N, '-', markersize=2, label='C++', color='blue')
-    plt.plot(c_t_Nreal, c_Nreal, '-', markersize=2, label='Cadence', color='orange')
+    # plt.plot(c_t_Nreal, c_Nreal, '-', markersize=2, label='Cadence', color='orange')
     plt.yscale('log')
     plt.xlim(0, 6)
     plt.title('Oxygen vacancy concentration of the disc')
@@ -379,7 +378,7 @@ def main():
 
     plt.subplot(2, 2, 3)
     plt.plot(t, T, '-', markersize=2, label='C++', color='blue')
-    plt.plot(c_t_T, c_T, '-', markersize=2, label='Cadence', color='orange')
+    # plt.plot(c_t_T, c_T, '-', markersize=2, label='Cadence', color='orange')
     plt.xlim(0, 6)
     plt.title('Temperature')
     plt.xlabel('Time (s)')
@@ -387,28 +386,28 @@ def main():
     plt.legend()
     plt.grid(True)
 
-    # plt.subplot(2, 2, 4)
-    # plt.plot(t, R_schottky, '-', label="Schottky", color='blue')
-    # plt.plot(t, R_disc, '-', label="Disc", color='orange')
-    # plt.plot(t, R_plug, '-', label="Plug", color='yellow')
-    # plt.plot(t, R_series, '-', label="Series", color='purple')
-    # plt.plot(t, R, '-', label="Total", color='green')
-    # plt.yscale('log')
-    # plt.xlim(0, 6)
-    # plt.ylim(0, 1e6)
-    # plt.title('Resistance components')
-    # plt.xlabel('Time (s)')
-    # plt.ylabel('Resistance (Ohm)')
-    # plt.legend()
-    # plt.grid(True)
-
     plt.subplot(2, 2, 4)
-    plt.plot(t_dif, I_dif, '-')
+    plt.plot(t, R_schottky, '-', label="Schottky", color='blue')
+    plt.plot(t, R_disc, '-', label="Disc", color='orange')
+    plt.plot(t, R_plug, '-', label="Plug", color='yellow')
+    plt.plot(t, R_series, '-', label="Series", color='purple')
+    plt.plot(t, R_total, '-', label="Total", color='green')
     plt.yscale('log')
-    plt.title('Current difference between Cadence and C++ simulation')
+    plt.xlim(0, 6)
+    plt.ylim(0, 1e6)
+    plt.title('Resistance components')
     plt.xlabel('Time (s)')
-    plt.ylabel('Current difference (A)')
+    plt.ylabel('Resistance (Ohm)')
+    plt.legend()
     plt.grid(True)
+
+    # plt.subplot(2, 2, 4)
+    # plt.plot(t_dif, I_dif, '-')
+    # plt.yscale('log')
+    # plt.title('Current difference between Cadence and C++ simulation')
+    # plt.xlabel('Time (s)')
+    # plt.ylabel('Current difference (A)')
+    # plt.grid(True)
 
     # plt.subplot(2, 2, 4)
     # # plt.plot(t, R_disc, '-', label="c++", color='blue')
