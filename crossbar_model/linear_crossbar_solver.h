@@ -1,5 +1,5 @@
-#ifndef CROSSBAR_ARRAY_MODEL_H_
-#define CROSSBAR_ARRAY_MODEL_H_
+#ifndef LINEAR_CROSSBAR_SOLVER_H_
+#define LINEAR_CROSSBAR_SOLVER_H_
 
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
@@ -21,4 +21,4 @@ Eigen::SparseMatrix<float> PartiallyPrecomputeG_ABCD(
     const float Rwl, const float Rbl
 );
 
-#endif  // CROSSBAR_ARRAY_MODEL_H_
+#endif  // LINEAR_CROSSBAR_SOLVER_H_

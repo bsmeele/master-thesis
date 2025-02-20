@@ -10,9 +10,10 @@ g++ -std=c++17 -O3 ^
 -I .\crossbar_model\eigen\ ^
 -I .\crossbar_model\ ^
 -I .\memristor_model\ ^
-RRAM_crossbar_model.cpp ^
+crossbar_simulator.cpp ^
+nonlinear_crossbar_solver.cpp ^
 main.cpp ^
-.\crossbar_model\crossbar_array_model.cpp ^
+.\crossbar_model\linear_crossbar_solver.cpp ^
 .\memristor_model\JART_VCM_v1b_var.cpp ^
 -o %OUTPUT%
 

@@ -4,6 +4,8 @@ import csv
 def main():
     file_path = 'out.txt'
     # file_path = 'out_16x16_bottom_left.txt'
+    # file_path = 'out_16x16_top_right.txt'
+    # file_path = 'out_16x16_top_right_access_transistors.txt'
     file_path4 = 'all-signals-no-var.csv'
 
     t = []  # Time
@@ -357,7 +359,8 @@ def main():
     plt.plot(V, I_abs, '-', markersize=2, label='C++', color='blue')
     # plt.plot(c_AE, c_IAE_abs, markersize=2, label='Cadence', color='orange')
     plt.yscale('log')
-    plt.xlim(min(V), max(V))
+    # plt.xlim(min(V), max(V))
+    plt.xlim(-1.5, 1.5)
     plt.ylim(1e-8, max(I)*2)
     plt.title('I-V Characteristic')
     plt.xlabel('Voltage (V)')

@@ -1,5 +1,5 @@
-#ifndef RRAM_CA_H_
-#define RRAM_CA_H_
+#ifndef NONLINEAR_CROSSBAR_SOLVER_H_
+#define NONLINEAR_CROSSBAR_SOLVER_H_
 
 #include "memristor_model/JART_VCM_v1b_var.h"
 
@@ -10,6 +10,7 @@
 
 Eigen::VectorXf BroydenInvSolve(
     std::vector<std::vector<JART_VCM_v1b_var>> RRAM,
+    std::vector<std::vector<bool>> access_transistors,
     Eigen::VectorXf Vguess, Eigen::SparseMatrix<float> G_ABCD,
     const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,
     const Eigen::VectorXf& Vappbl1, const Eigen::VectorXf& Vappbl2,
@@ -20,6 +21,7 @@ Eigen::VectorXf BroydenInvSolve(
 
 Eigen::VectorXf BroydenSolve(
     std::vector<std::vector<JART_VCM_v1b_var>> RRAM,
+    std::vector<std::vector<bool>> access_transistors,
     Eigen::VectorXf Vguess, Eigen::SparseMatrix<float> G_ABCD,
     const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,
     const Eigen::VectorXf& Vappbl1, const Eigen::VectorXf& Vappbl2,
@@ -30,6 +32,7 @@ Eigen::VectorXf BroydenSolve(
 
 Eigen::VectorXf NewtonRaphsonSolve(
     std::vector<std::vector<JART_VCM_v1b_var>> RRAM,
+    std::vector<std::vector<bool>> access_transistors,
     Eigen::VectorXf Vguess, Eigen::SparseMatrix<float> G_ABCD,
     const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,
     const Eigen::VectorXf& Vappbl1, const Eigen::VectorXf& Vappbl2,
@@ -40,6 +43,7 @@ Eigen::VectorXf NewtonRaphsonSolve(
 
 Eigen::VectorXf FixedpointSolve(
     std::vector<std::vector<JART_VCM_v1b_var>> RRAM,
+    std::vector<std::vector<bool>> access_transistors,
     Eigen::VectorXf Vguess, Eigen::SparseMatrix<float> G_ABCD,
     const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,
     const Eigen::VectorXf& Vappbl1, const Eigen::VectorXf& Vappbl2,
@@ -48,4 +52,4 @@ Eigen::VectorXf FixedpointSolve(
     const bool print = false
 );
 
-#endif  // RRAM_CA_H_
+#endif  // NONLINEAR_CROSSBAR_SOLVER_H_

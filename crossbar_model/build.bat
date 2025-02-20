@@ -8,7 +8,7 @@ REM Compile command
 echo Compiling...
 g++ -std=c++17 -O3 ^
 -I .\eigen\ ^
-crossbar_array_model.cpp ^
+linear_crossbar_solver.cpp ^
 main.cpp ^
 -o %OUTPUT%
 

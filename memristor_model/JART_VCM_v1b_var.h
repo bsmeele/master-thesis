@@ -16,7 +16,7 @@ class JART_VCM_v1b_var {
     private:
     public:
         // ----- Pyisical constants do not change! -----
-        const double Arichardson = 6.01e5; // Richardson's constant [A/m^2K^2]
+        const float Arichardson = 6.01e5; // Richardson's constant [A/m^2K^2]
         const double mdiel = 9.10938e-31;  // electron rest mass [kg]
         const double zvo = 2;              // oxygen vacancy charge number
         const double T0 = 293;             // ambient temperature [K]

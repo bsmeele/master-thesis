@@ -1,4 +1,4 @@
-#include "crossbar_array_model.h"
+#include "linear_crossbar_solver.h"
 
 #include <iostream>
 
@@ -7,8 +7,6 @@
 
 // Computes the nodal voltages of a crossbar based on crossbar resistances and device resistances
 // For a mathemtical explanation of this method, see the reference paper
-// This specific implementation assumes one set of wordline voltage sources and one set of bitline voltage sources
-// Therefore the Vappwl2, Vappbl1, Rswl2, and Rsbl1 parameters are unused
 Eigen::VectorXf SolveCam(
     const Eigen::MatrixXf& G,  // Conductance matrix of the devices in the crossbar
     const Eigen::VectorXf& Vguess,  // Initial guess for the nodal voltages. Supplying a zero vector acts as if no guess is given
@@ -24,8 +22,8 @@ Eigen::VectorXf SolveCam(
     int N = G.cols();
 
     float Gswl1 = 1/Rswl1;
-    float Gswl2 = 0;
-    float Gsbl1 = 0;
+    float Gswl2 = 1/Rswl2;
+    float Gsbl1 = 1/Rsbl1;
     float Gsbl2 = 1/Rsbl2;
 
     float Gwl = 1/Rwl;
@@ -148,8 +146,8 @@ Eigen::SparseMatrix<float> PartiallyPrecomputeG_ABCD(
     const float Rwl, const float Rbl
 ) {
     float Gswl1 = 1/Rswl1;
-    float Gswl2 = 0;
-    float Gsbl1 = 0;
+    float Gswl2 = 1/Rswl2;
+    float Gsbl1 = 1/Rsbl1;
     float Gsbl2 = 1/Rsbl2;
 
     float Gwl = 1/Rwl;

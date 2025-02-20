@@ -5,6 +5,7 @@
 #include <vector>
 #include <array>
 #include <cmath>
+#include <chrono>
 
 int main() {
     // Applied voltage:
@@ -34,22 +35,40 @@ int main() {
     Vwave.push_back({0, 3});
     Vwave.push_back({1.5, 4.5});
     Vwave.push_back({0, 6});
+    Vwave.push_back({-1.5, 7.5});
+    Vwave.push_back({0, 9});
+    Vwave.push_back({1.5, 10.5});
+    Vwave.push_back({0, 12});
+    Vwave.push_back({-1.5, 13.5});
+    Vwave.push_back({0, 15});
+    Vwave.push_back({1.5, 16.5});
+    Vwave.push_back({0, 18});
 
     double V = Vwave[0][0];
     double t = Vwave[0][1];
 
-    outfile << "t V I Nreal Treal Vschottky Vdiscplugserial Rschottky Rdisc Rplug Rseries Rtotal" << std::endl;
+    outfile << "t V I Nreal Treal Vschottky Vdiscplugserial Rschottky Rdisc Rplug Rseries Rtotal rvar lvar" << std::endl;
+
+    long long total_time = 0;
 
     for (int i = 1; i < Vwave.size(); i++) {
         double dv = (Vwave[i][0] - V) / ((Vwave[i][1] - t) / dt);
         while (t < Vwave[i][1]) {
             double I;
+
+            auto start_time = std::chrono::high_resolution_clock::now();
             I = memristor.ApplyVoltage(V, dt);
+            auto end_time = std::chrono::high_resolution_clock::now();
+
+            auto execution_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time).count();
+            total_time += execution_time;
+
             if (std::isnan(I)) { return 1; }
             outfile << t << " " << V << " " << I << " " << memristor.Nreal << " " << memristor.Treal
             << " " << (V - (memristor.Rdisc + memristor.Rplug + memristor.Rseries) * I) << " " << (memristor.Rdisc + memristor.Rplug + memristor.Rseries) * I
             << " " << (V - (memristor.Rdisc + memristor.Rplug + memristor.Rseries) * I)/I << " " << memristor.Rdisc << " " << memristor.Rplug << " " << memristor.Rseries
             << " " << V/I
+            << " " << memristor.rvar << " " << memristor.lvar
             << std::endl;
             V += dv;
             t += dt;
@@ -57,4 +76,6 @@ int main() {
     }
 
     outfile.close();
+
+    std::cout << "Simulated in " << total_time/1000. << " us" << std::endl;
 }

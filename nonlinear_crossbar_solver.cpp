@@ -1,5 +1,5 @@
-#include "RRAM_crossbar_model.h"
-#include "crossbar_model/crossbar_array_model.h"
+#include "nonlinear_crossbar_solver.h"
+#include "crossbar_model/linear_crossbar_solver.h"
 
 #include <iostream>
 
@@ -20,6 +20,7 @@
 // The soving method takes an iteration limit of 100, after which the best guess is returned
 Eigen::VectorXf BroydenInvSolve(
     std::vector<std::vector<JART_VCM_v1b_var>> RRAM,  // Matrix containing the nonlinear deviceds
+    std::vector<std::vector<bool>> access_transistors,
     Eigen::VectorXf Vguess,  // Initial guess for the nodal voltages. Supplying a zero vector acts as if no guess is given
     Eigen::SparseMatrix<float> G_ABCD,  // A partially precomputed version of the G_ABCD matrix
     const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,  // Applied voltages to the wordlines of the crossbar
@@ -36,8 +37,12 @@ Eigen::VectorXf BroydenInvSolve(
     Eigen::MatrixXf G(M, N);
     for (int i = 0; i < M; i++) {
         for (int j = 0; j < N; j++) {
-            float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
-            G(i, j) = 1./RRAM[i][j].GetResistance(v);
+            if (access_transistors[i][j]) {
+                float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
+                G(i, j) = (float) 1./RRAM[i][j].GetResistance(v);
+            } else {
+                G(i, j) = 0;
+            }
         }
     }
 
@@ -60,12 +65,14 @@ Eigen::VectorXf BroydenInvSolve(
         // In the case a 'nudge loop' is encountered, the best guess up untill that point is returned
         if (std::isnan(Fv.norm())) {
             if (print) { std::cout << "Nan norm detected, giving tiny nudge" << std::endl; }
+            // std::cout << "Nan norm detected, giving tiny nudge" << std::endl;
 
             for (int i = 0; i < Vguess.size(); i++) {
                 Vguess(i) += 1e-6 * ((Vguess(i) < 0) - (Vguess(i) > 0));
             }
 
             if (it >= it_max) {
+                if (print) { std::cout << "Iteration limit reached: " << it << std::endl; }
                 return Vguess;
             }
 
@@ -101,8 +108,12 @@ Eigen::VectorXf BroydenInvSolve(
         Eigen::MatrixXf G(M, N);
         for (int i = 0; i < M; i++) {
             for (int j = 0; j < N; j++) {
-                float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
-                G(i, j) = 1./RRAM[i][j].GetResistance(v);
+                if (access_transistors[i][j]) {
+                    float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
+                    G(i, j) = (float) 1./RRAM[i][j].GetResistance(v);
+                } else {
+                    G(i, j) = 0;
+                }
             }
         }
 
@@ -112,8 +123,8 @@ Eigen::VectorXf BroydenInvSolve(
         Eigen::VectorXf dF = Fv_new - Fv;
 
         // Update inverse Jacobian
-        B += ((dV - B * dF) / (dV.transpose() * B * dF + 1e-12)) * dV.transpose() * B; // 'Good' method
-        // B += ((dV - B * dF) / (dF.squaredNorm() + 1e-12)) * dF.transpose(); // 'Bad' method
+        // B += ((dV - B * dF) / (dV.transpose() * B * dF + 1e-12)) * dV.transpose() * B; // 'Good' method
+        B += ((dV - B * dF) / (dF.squaredNorm() + 1e-12)) * dF.transpose(); // 'Bad' method
 
         Fv = Fv_new;
 
@@ -129,6 +140,7 @@ Eigen::VectorXf BroydenInvSolve(
 // The soving method takes an iteration limit of 100, after which the best guess is returned
 Eigen::VectorXf BroydenSolve(
     std::vector<std::vector<JART_VCM_v1b_var>> RRAM,  // Matrix containing the nonlinear deviceds
+    std::vector<std::vector<bool>> access_transistors,
     Eigen::VectorXf Vguess,  // Initial guess for the nodal voltages. Supplying a zero vector acts as if no guess is given
     Eigen::SparseMatrix<float> G_ABCD,  // A partially precomputed version of the G_ABCD matrix
     const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,  // Applied voltages to the wordlines of the crossbar
@@ -145,8 +157,12 @@ Eigen::VectorXf BroydenSolve(
     Eigen::MatrixXf G(M, N);
     for (int i = 0; i < M; i++) {
         for (int j = 0; j < N; j++) {
-            float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
-            G(i, j) = 1./RRAM[i][j].GetResistance(v);
+            if (access_transistors[i][j]) {
+                float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
+                G(i, j) = (float) 1./RRAM[i][j].GetResistance(v);
+            } else {
+                G(i, j) = 0;
+            }
         }
     }
 
@@ -169,12 +185,14 @@ Eigen::VectorXf BroydenSolve(
         // In the case a 'nudge loop' is encountered, the best guess up untill that point is returned
         if (std::isnan(Fv.norm())) {
             if (print) { std::cout << "Nan norm detected, giving tiny nudge" << std::endl; }
+            // std::cout << "Nan norm detected, giving tiny nudge" << std::endl;
 
             for (int i = 0; i < Vguess.size(); i++) {
                 Vguess(i) += 1e-6 * ((Vguess(i) < 0) - (Vguess(i) > 0));
             }
 
             if (it >= it_max) {
+                if (print) { std::cout << "Iteration limit reached: " << it << std::endl; }
                 return Vguess;
             }
 
@@ -207,11 +225,14 @@ Eigen::VectorXf BroydenSolve(
         Vguess += a * dV;
         
         // Determine G
-        Eigen::MatrixXf G(M, N);
         for (int i = 0; i < M; i++) {
             for (int j = 0; j < N; j++) {
-                float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
-                G(i, j) = 1./RRAM[i][j].GetResistance(v);
+                if (access_transistors[i][j]) {
+                    float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
+                    G(i, j) = (float) 1./RRAM[i][j].GetResistance(v);
+                } else {
+                    G(i, j) = 0;
+                }
             }
         }
 
@@ -236,6 +257,7 @@ Eigen::VectorXf BroydenSolve(
 // The soving method takes an iteration limit of 100, after which the best guess is returned
 Eigen::VectorXf NewtonRaphsonSolve(
     std::vector<std::vector<JART_VCM_v1b_var>> RRAM,  // Matrix containing the nonlinear deviceds
+    std::vector<std::vector<bool>> access_transistors,
     Eigen::VectorXf Vguess,  // Initial guess for the nodal voltages. Supplying a zero vector acts as if no guess is given
     Eigen::SparseMatrix<float> G_ABCD,  // A partially precomputed version of the G_ABCD matrix
     const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,  // Applied voltages to the wordlines of the crossbar
@@ -258,8 +280,12 @@ Eigen::VectorXf NewtonRaphsonSolve(
         // Determine G
         for (int i = 0; i < M; i++) {
             for (int j = 0; j < N; j++) {
-                float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
-                G(i, j) = 1./RRAM[i][j].GetResistance(v);
+                if (access_transistors[i][j]) {
+                    float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
+                    G(i, j) = (float) 1./RRAM[i][j].GetResistance(v);
+                } else {
+                    G(i, j) = 0;
+                }
             }
         }
 
@@ -274,12 +300,14 @@ Eigen::VectorXf NewtonRaphsonSolve(
         // In the case a 'nudge loop' is encountered, the best guess up untill that point is returned
         if (std::isnan(Fv.norm())) {
             if (print) { std::cout << "Nan norm detected, giving tiny nudge" << std::endl; }
+            // std::cout << "Nan norm detected, giving tiny nudge" << std::endl;
 
             for (int i = 0; i < Vguess.size(); i++) {
                 Vguess(i) += 1e-6 * ((Vguess(i) < 0) - (Vguess(i) > 0));
             }
 
             if (it >= it_max) {
+                if (print) { std::cout << "Iteration limit reached: " << it << std::endl; }
                 return Vguess;
             }
 
@@ -311,10 +339,15 @@ Eigen::VectorXf NewtonRaphsonSolve(
             float delta = 1e-3;
             Vguess(col) += delta;
 
+            
             for (int i = 0; i < M; i++) {
                 for (int j = 0; j < N; j++) {
-                    double v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
-                    G(i, j) = 1./RRAM[i][j].GetResistance(v);
+                    if (access_transistors[i][j]) {
+                        float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
+                        G(i, j) = (float) 1./RRAM[i][j].GetResistance(v);
+                    } else {
+                        G(i, j) = 0;
+                    }
                 }
             }
 
@@ -342,6 +375,7 @@ Eigen::VectorXf NewtonRaphsonSolve(
 // The soving method takes an iteration limit of 100, after which the best guess is returned
 Eigen::VectorXf FixedpointSolve(
     std::vector<std::vector<JART_VCM_v1b_var>> RRAM,  // Matrix containing the nonlinear deviceds
+    std::vector<std::vector<bool>> access_transistors,  // Matrix containing access transistors. Assumed to be ideal, thus true means on/closed, false means off/open
     Eigen::VectorXf Vguess,  // Initial guess for the nodal voltages. Supplying a zero vector acts as if no guess is given
     Eigen::SparseMatrix<float> G_ABCD,  // A partially precomputed version of the G_ABCD matrix
     const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,  // Applied voltages to the wordlines of the crossbar
@@ -364,8 +398,12 @@ Eigen::VectorXf FixedpointSolve(
         // Determine G
         for (int i = 0; i < M; i++) {
             for (int j = 0; j < N; j++) {
-                float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
-                G(i, j) = (float) 1./RRAM[i][j].GetResistance(v);
+                if (access_transistors[i][j]) {
+                    float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
+                    G(i, j) = (float) 1./RRAM[i][j].GetResistance(v);
+                } else {
+                    G(i, j) = 0;
+                }
             }
         }
         
@@ -380,13 +418,14 @@ Eigen::VectorXf FixedpointSolve(
         // In the case a 'nudge loop' is encountered, the best guess up untill that point is returned
         if (std::isnan(Fv.norm())) {
             if (print) { std::cout << "Nan norm detected, giving tiny nudge" << std::endl; }
-            std::cout << "Nan norm detected, giving tiny nudge" << std::endl;
+            // std::cout << "Nan norm detected, giving tiny nudge" << std::endl;
 
             for (int i = 0; i < Vguess.size(); i++) {
                 Vguess(i) += 1e-6 * ((Vguess(i) < 0) - (Vguess(i) > 0));
             }
 
             if (it >= it_max) {
+                if (print) { std::cout << "Iteration limit reached: " << it << std::endl; }
                 return Vguess;
             }
 

@@ -71,7 +71,7 @@ void JART_VCM_v1b_var::UpdateConcentration(double I_ion, double dt) {
 // Computes the ion current through the device
 // The ion current is exclusively used in updating the state variable of the device
 double JART_VCM_v1b_var::ComputeIonCurrent(double V_applied, double V_schottky, double V_discplugserial) {
-    if ((Nreal < Ndiscmin && V_applied > 0) | (Nreal > Ndiscmax && V_applied < 0)) { // Keep concentration Nreal in the borders of Ndiscmin and Ndiscmax
+    if ((Nreal <= Ndiscmin && V_applied > 0) | (Nreal >= Ndiscmax && V_applied < 0)) { // Keep concentration Nreal in the borders of Ndiscmin and Ndiscmax
         trig = 0;
         return 0;
     } else {
@@ -452,6 +452,15 @@ double JART_VCM_v1b_var::ApplyVoltage(double V_applied, double dt) {
             lold = lvar;
             Nold = Nreal;
             trig = 1;
+        }
+        if (V_applied < -2e-5 && trig == 1) {  // SET at negative voltage
+            rvar = rold + (rnew - rold) * ((Nreal - Nold) / (Ndiscmax - Nold));
+            lvar = lold + (lnew - lold) * ((Nreal - Nold) / (Ndiscmax - Nold));
+            UpdateFilamentArea();
+        } else if (V_applied > 2e-5 && trig == 1) {  // RESET at postivive voltage
+            rvar = rold + (rnew - rold) * ((Nold - Nreal) / (Nold - Ndiscmin));
+            lvar = lold + (lnew - lold) * ((Nold - Nreal) / (Nold - Ndiscmin));
+            UpdateFilamentArea();
         }
     }
 

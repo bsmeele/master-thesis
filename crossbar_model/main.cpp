@@ -1,4 +1,4 @@
-#include "crossbar_array_model.h"
+#include "linear_crossbar_solver.h"
 
 #include <iostream>
 #include <chrono>
