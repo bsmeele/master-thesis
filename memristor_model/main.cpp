@@ -27,7 +27,7 @@ int main() {
 
     JART_VCM_v1b_var memristor = JART_VCM_v1b_var();
 
-    const double dt = 1e-3;
+    const double dt = 1e-4;
 
     std::vector<std::array<double, 2>> Vwave;
     Vwave.push_back({0, 0});
@@ -35,14 +35,14 @@ int main() {
     Vwave.push_back({0, 3});
     Vwave.push_back({1.5, 4.5});
     Vwave.push_back({0, 6});
-    Vwave.push_back({-1.5, 7.5});
-    Vwave.push_back({0, 9});
-    Vwave.push_back({1.5, 10.5});
-    Vwave.push_back({0, 12});
-    Vwave.push_back({-1.5, 13.5});
-    Vwave.push_back({0, 15});
-    Vwave.push_back({1.5, 16.5});
-    Vwave.push_back({0, 18});
+    // Vwave.push_back({-1.5, 7.5});
+    // Vwave.push_back({0, 9});
+    // Vwave.push_back({1.5, 10.5});
+    // Vwave.push_back({0, 12});
+    // Vwave.push_back({-1.5, 13.5});
+    // Vwave.push_back({0, 15});
+    // Vwave.push_back({1.5, 16.5});
+    // Vwave.push_back({0, 18});
 
     double V = Vwave[0][0];
     double t = Vwave[0][1];

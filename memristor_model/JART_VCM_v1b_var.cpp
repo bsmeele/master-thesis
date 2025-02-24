@@ -37,7 +37,6 @@ double JART_VCM_v1b_var::ComputeSchottkyCurrent(double V_schottky) {
         phibn = phibn0 - sqrt(sqrt(pow(P_Q, 3) * zvo * Nreal * 1e26 * psi / (8 * pow(M_PI, 2) * (pow(epsphib_eff, 3)))));
         if (phibn < 0) { phibn = 0; }
     } else { phibn = phibn0; }
-    phibn_out = phibn;
 
     if (V_schottky < 0) { // TFE Schottky SET direction
         double W00 = (P_Q * P_H / (4 * M_PI)) * sqrt(zvo * Nreal * 1e26 / (mdiel * eps_eff));
