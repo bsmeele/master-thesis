@@ -133,8 +133,10 @@ std::array<double, 3> JART_VCM_v1b_var::SolveBisection(double V_low, double V_hi
 
         I_schottky = ComputeSchottkyCurrent(V_schottky);
         UpdateResistance(I_schottky);
+
         V_discplugserial = (Rdisc + Rplug + Rseries) * I_schottky;
         if (std::isinf(V_discplugserial)) { V_discplugserial = FLT_MAX; }
+
         double err = V_applied - V_discplugserial - V_schottky;
         if (fabs(err) < 1e-6) { return {V_schottky, V_discplugserial, I_schottky}; }
         if (err > 0) { V_low = V_schottky; }
@@ -452,15 +454,15 @@ double JART_VCM_v1b_var::ApplyVoltage(double V_applied, double dt) {
             Nold = Nreal;
             trig = 1;
         }
-        if (V_applied < -2e-5 && trig == 1) {  // SET at negative voltage
-            rvar = rold + (rnew - rold) * ((Nreal - Nold) / (Ndiscmax - Nold));
-            lvar = lold + (lnew - lold) * ((Nreal - Nold) / (Ndiscmax - Nold));
-            UpdateFilamentArea();
-        } else if (V_applied > 2e-5 && trig == 1) {  // RESET at postivive voltage
-            rvar = rold + (rnew - rold) * ((Nold - Nreal) / (Nold - Ndiscmin));
-            lvar = lold + (lnew - lold) * ((Nold - Nreal) / (Nold - Ndiscmin));
-            UpdateFilamentArea();
-        }
+        // if (V_applied < -2e-5 && trig == 1) {  // SET at negative voltage
+        //     rvar = rold + (rnew - rold) * ((Nreal - Nold) / (Ndiscmax - Nold));
+        //     lvar = lold + (lnew - lold) * ((Nreal - Nold) / (Ndiscmax - Nold));
+        //     UpdateFilamentArea();
+        // } else if (V_applied > 2e-5 && trig == 1) {  // RESET at postivive voltage
+        //     rvar = rold + (rnew - rold) * ((Nold - Nreal) / (Nold - Ndiscmin));
+        //     lvar = lold + (lnew - lold) * ((Nold - Nreal) / (Nold - Ndiscmin));
+        //     UpdateFilamentArea();
+        // }
     }
 
     double V_schottky;
@@ -471,8 +473,12 @@ double JART_VCM_v1b_var::ApplyVoltage(double V_applied, double dt) {
         V_schottky = result[0];
         V_discplugserial = result[1];
         I_schottky = result[2];
-    } else if (V_applied > 0) {
-
+    } else if (V_applied < phibn0 - phin) {
+        auto result = SolveBisection(0, V_applied, V_applied);
+        V_schottky = result[0];
+        V_discplugserial = result[1];
+        I_schottky = result[2];
+    } else if (V_applied >= phibn0 - phin) {
         // std::vector<std::array<double, 3>> roots;
         // multi_solve_bisection(0, V_applied, V_applied, roots);
         // if (roots.size() > 1) {

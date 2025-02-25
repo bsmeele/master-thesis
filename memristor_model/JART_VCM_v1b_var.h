@@ -3,6 +3,7 @@
 
 #include <array>
 #include <vector>
+#include <iostream>
 
 #ifndef M_PI
 #define M_PI 3.1415927  // Define M_PI if not defined

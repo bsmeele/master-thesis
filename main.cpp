@@ -48,11 +48,14 @@ int main(int argc, char* argv[]) {
                 V(i*N + j) = Vappwl1(i);
             }
         }
+        
         auto start_time = std::chrono::high_resolution_clock::now();
 
-        std::vector<float> Iout = crossbar.NonlinearSolve(V, Vappwl1, Vappwl2, Vappbl1, Vappbl2);
+        Eigen::VectorXf Vout = crossbar.NonlinearSolve(V, Vappwl1, Vappwl2, Vappbl1, Vappbl2);
 
         auto end_time = std::chrono::high_resolution_clock::now();
+
+        std::vector<float> Iout = crossbar.CalculateIout(Vout);
 
         for (int i = 0; i < Iout.size(); i++) {
                 if (std::isnan(Iout[i])) {
