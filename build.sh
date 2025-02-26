@@ -8,8 +8,8 @@ OUTPUT="RRAM_CA"
 # Compile command
 echo "Compiling..."
 g++ -std=c++17 -g \
--I crossbar_model/eigen/ \
--I crossbar_model/ \
+-I linear_crossbar_solver/eigen/ \
+-I linear_crossbar_solver/ \
 -I memristor_model/ \
 RRAM_crossbar_model.cpp \
 crossbar_model/cam.cpp \
