@@ -3,18 +3,32 @@
 
 
 # Paths to source files
-OUTPUT="RRAM_CA"
+OUTPUT1="RRAM_CA"
+OUTPUT2="RRAM_validation"
 
 # Compile command
 echo "Compiling..."
-g++ -std=c++17 -g \
--I linear_crossbar_solver/eigen/ \
--I linear_crossbar_solver/ \
+g++ -std=c++17 -O3 \
+-I crossbar_model/eigen/ \
+-I crossbar_model/ \
 -I memristor_model/ \
-RRAM_crossbar_model.cpp \
-crossbar_model/cam.cpp \
+crossbar_simulator.cpp \
+nonlinear_crossbar_solver.cpp \
+main.cpp \
+crossbar_model/linear_crossbar_solver.cpp \
 memristor_model/JART_VCM_v1b_var.cpp \
--o $OUTPUT
+-o $OUTPUT1
+
+g++ -std=c++17 -O3 \
+-I crossbar_model/eigen/ \
+-I crossbar_model/ \
+-I memristor_model/ \
+crossbar_simulator.cpp \
+nonlinear_crossbar_solver.cpp \
+RRAM_validation.cpp \
+crossbar_model/linear_crossbar_solver.cpp \
+memristor_model/JART_VCM_v1b_var.cpp \
+-o $OUTPUT2
 
 # Check for success
 if [ $? -ne 0 ]; then
@@ -22,4 +36,4 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-echo "Build succeeded! Executable: $OUTPUT"
+echo "Build succeeded! Executable: $OUTPUT1 and $OUTPUT2"
