@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Set the base directory where the folders are located
-base_dir="./weights_inputs/bi"
+base_dir="./weights_inputs/bin"
 
 # Capture the start ime in seconds (hours * 3600 + minutes * 60 + seconds)
 start_time=$(date +%s)
@@ -14,7 +14,7 @@ for folder in "$base_dir"/row_*_col_*_*; do
     echo "Processing folder: $folder"
 
     # Call your C++ program with the folder as an argument
-    ./RRAM_validation "$folder"
+    ./RRAM_validation.out "$folder"
 done
 
 # Capture the end time in seconds

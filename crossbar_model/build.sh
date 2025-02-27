@@ -3,7 +3,7 @@
 
 
 # Paths to source files
-OUTPUT="cam"
+OUTPUT="cam.out"
 
 # Compile command
 echo "Compiling..."

@@ -3,7 +3,7 @@
 
 
 # Paths to source files
-OUTPUT="model"
+OUTPUT="model.out"
 
 # Compile command
 echo "Compiling..."

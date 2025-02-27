@@ -3,8 +3,8 @@
 
 
 # Paths to source files
-OUTPUT1="RRAM_CA"
-OUTPUT2="RRAM_validation"
+OUTPUT1="RRAM_CA.out"
+OUTPUT2="RRAM_validation.out"
 
 # Compile command
 echo "Compiling..."
