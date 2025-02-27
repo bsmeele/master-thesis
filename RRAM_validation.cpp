@@ -8,19 +8,116 @@
 #include <iostream>
 #include <chrono>
 #include <fstream>
+#include <filesystem>
+#include <cstdint>
+#include <algorithm>
+
+namespace fs = std::filesystem;
+
+std::vector<std::vector<int64_t>> readMatrixFromFile(const std::filesystem::path& filePath) {
+    std::ifstream file(filePath, std::ios::binary);
+    
+    if (!file) {
+        throw std::runtime_error("Failed to open file: " + filePath.string());
+    }
+
+    // Read rows and columns
+    int64_t rows, cols;
+    file.read(reinterpret_cast<char*>(&rows), sizeof(int64_t));
+    file.read(reinterpret_cast<char*>(&cols), sizeof(int64_t));
+
+    // Read data
+    std::vector<std::vector<int64_t>> matrix(rows, std::vector<int64_t>(cols));
+
+    // Read the data into the matrix
+    for (int64_t i = 0; i < rows; ++i) {
+        file.read(reinterpret_cast<char*>(matrix[i].data()), cols * sizeof(int64_t));
+    }
+
+    return matrix;
+}
+
+std::vector<std::vector<std::vector<float>>> readTensorFromFile(const std::filesystem::path& filePath) {
+    std::ifstream file(filePath, std::ios::binary);
+
+    if (!file) {
+        throw std::runtime_error("Failed to open file: " + filePath.string());
+    }
+
+    // Read dimensions (depth, rows, cols)
+    int64_t depth, rows, cols;
+    file.read(reinterpret_cast<char*>(&depth), sizeof(int64_t));
+    file.read(reinterpret_cast<char*>(&rows), sizeof(int64_t));
+    file.read(reinterpret_cast<char*>(&cols), sizeof(int64_t));
+
+    // Create a 3D tensor
+    std::vector<std::vector<std::vector<float>>> tensor(depth, std::vector<std::vector<float>>(rows, std::vector<float>(cols)));
+
+    // Read the data into the tensor
+    for (int64_t i = 0; i < depth; ++i) {
+        for (int64_t j = 0; j < rows; ++j) {
+            file.read(reinterpret_cast<char*>(tensor[i][j].data()), cols * sizeof(float));
+        }
+    }
+
+    return tensor;
+}
+
+std::vector<std::vector<float>> readFloatMatrixFromFile(const std::filesystem::path& filePath) {
+    std::ifstream file(filePath, std::ios::binary);
+
+    if (!file) {
+        throw std::runtime_error("Failed to open file: " + filePath.string());
+    }
+
+    // Read dimensions (rows, cols)
+    int64_t rows, cols;
+    file.read(reinterpret_cast<char*>(&rows), sizeof(int64_t));
+    file.read(reinterpret_cast<char*>(&cols), sizeof(int64_t));
+
+    // Create a 2D matrix
+    std::vector<std::vector<float>> matrix(rows, std::vector<float>(cols));
+
+    // Read the data into the matrix
+    for (int64_t i = 0; i < rows; ++i) {
+        file.read(reinterpret_cast<char*>(matrix[i].data()), cols * sizeof(float));
+    }
+
+    return matrix;
+}
 
 int main(int argc, char* argv[]) {
-    srand((unsigned int) time(0));
+    // srand((unsigned int) time(0));
 
-    int M = (argc >= 2) ? std::atoi(argv[1]) : 32;
-    int N = (argc >= 3) ? std::atoi(argv[2]) : 32;
+    // int M = (argc >= 2) ? std::atoi(argv[1]) : 32;
+    // int N = (argc >= 3) ? std::atoi(argv[2]) : 32;
 
-    bool print = (argc >= 4 && std::atoi(argv[3]) == 1) ? true : false;
+    // bool print = (argc >= 4 && std::atoi(argv[3]) == 1) ? true : false;
+
+    std::filesystem::path top_dir, input_path,weight_path;
+    if (argc >= 2) {
+        top_dir = fs::absolute(argv[1]);
+    }
+
+    input_path = top_dir/"input.bin";
+    weight_path = top_dir/"weight.bin";
+
+    auto input_data = readMatrixFromFile(input_path);
+    auto weight_data = readMatrixFromFile(weight_path);
+
+    int M = weight_data.size();
+    int N = weight_data[0].size();
 
     // 1 ohm resistors
     // Ndiscmin of 0.0001, default parameters otherwise
     // Transistor gate is connected to source line, thus memristor will be connected if source line is 1
     CrossbarSimulator crossbar = CrossbarSimulator(M, N);
+    // crossbar.Rswl1 = 0.;
+    // crossbar.Rswl2 = 0.;
+    // crossbar.Rsbl1 = 0.;
+    // crossbar.Rsbl2 = 0.;
+    // crossbar.Rwl = 0.;
+    // crossbar.Rbl = 0.;
     for (int i = 0; i < crossbar.RRAM.size(); i++) {
         for (int j = 0; j < crossbar.RRAM[i].size(); j++) {
             crossbar.RRAM[i][j].Ndiscmin = 0.0001;
@@ -32,7 +129,7 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < M; i++) {
         std::vector<bool> row;
         for (int j = 0; j < N; j++) {
-            if (std::rand()%2 == 0) {
+            if (weight_data[i][j] != 0) {
                 row.push_back(true);
             } else {
                 row.push_back(false);
@@ -40,97 +137,239 @@ int main(int argc, char* argv[]) {
         }
         weights.push_back(row);
     }
-    crossbar.SetRRAM(weights);
+    // for (int i = 0; i < M; i++) {
+    //     std::vector<bool> row;
+    //     for (int j = 0; j < N; j++) {
+    //         if (std::rand()%2 == 0) {
+    //             row.push_back(true);
+    //         } else {
+    //             row.push_back(false);
+    //         }
+    //     }
+    //     weights.push_back(row);
+    // }
 
-    std::vector<bool> Vapp;
-    for (int i = 0; i < M; i++) {
-        if (std::rand()%2 == 0) {
-            Vapp.push_back(true);
-        } else {
-            Vapp.push_back(false);
-            crossbar.access_transistors[i] = std::vector<bool>(N, false);
-        }
-    }
-    Vapp[0] = true;
+    // std::vector<bool> Vapp;
+    // for (int i = 0; i < M; i++) {
+    //     if (std::rand()%2 == 0) {
+    //         Vapp.push_back(true);
+    //     } else {
+    //         Vapp.push_back(false);
+    //         crossbar.access_transistors[i] = std::vector<bool>(N, false);
+    //     }
+    // }
 
-    // 0.1 V read voltage
-    // width of 50 us
-    // 5 us rise and fall time
-    float Vdd = 0.1;
-    Eigen::VectorXf Vappwl1 = Eigen::VectorXf::Zero(M);
-    Eigen::VectorXf Vappwl2 = Eigen::VectorXf::Zero(M);
-    Eigen::VectorXf Vappbl1 = Eigen::VectorXf::Zero(M);
-    Eigen::VectorXf Vappbl2 = Eigen::VectorXf::Zero(M);
-
-    Eigen::VectorXf Vguess = Eigen::VectorXf::Zero(2*M*N);
-
-    float dt = 1e-6;
-    std::vector<std::array<float, 2>> Vwave = { {{0, 0}}, {{Vdd, 5e-6}}, {{Vdd, 45e-6}}, {{0, 50e-6}}};
-
-    float V = 0;
-    float t = 0;
-
-    std::vector<std::vector<std::vector<float>>> Iwave;
+    std::vector<std::vector<std::vector<float>>> output_data;
+    std::vector<std::vector<float>> output_data_MAC;
 
     auto start_time = std::chrono::high_resolution_clock::now();
 
-    for (int i = 0; i < Vwave.size(); i++) {
-        float dv = (Vwave[i][0] - V) / ((Vwave[i][1] - t) / dt);
-        while (t < Vwave[i][1]) {
-            for (int i = 0; i < M; i++) {
-                for (int j = 0; j < N; j++) {
-                    Vguess(i*N + j) = Vappwl1(i);
-                }
-            }
+    for (int i = 0; i < input_data.size(); i++) {
+        crossbar.SetRRAM(weights);
 
-            std::vector<std::vector<float>> Iout = crossbar.ApplyVoltage(Vguess, Vappwl1, Vappwl2, Vappbl1, Vappbl2, dt);
-            Iwave.push_back(Iout);
-
-            for (int j = 0; j < M; j++) {
-                if (Vapp[j]) {
-                    Vappwl1(j) += dv;
-                }
+        std::vector<bool> Vapp;
+        for (int j = 0; j < M; j++) {
+            if (input_data[i][j] != 0) {
+                Vapp.push_back(true);
+                crossbar.access_transistors[j] = std::vector<bool>(N, true);
+            } else {
+                Vapp.push_back(false);
+                crossbar.access_transistors[j] = std::vector<bool>(N, false);
             }
-            V += dv;
-            t += dt;
         }
+
+        float Vdd = 0.1;
+        Eigen::VectorXf Vappwl1 = Eigen::VectorXf::Zero(M);
+        Eigen::VectorXf Vappwl2 = Eigen::VectorXf::Zero(M);
+        Eigen::VectorXf Vappbl1 = Eigen::VectorXf::Zero(M);
+        Eigen::VectorXf Vappbl2 = Eigen::VectorXf::Zero(M);
+
+        Eigen::VectorXf Vguess = Eigen::VectorXf::Zero(2*M*N);
+
+        // 0.1 V read voltage
+        // width of 50 us
+        // 5 us rise and fall time
+        float dt = 1e-6;
+        std::vector<std::array<float, 2>> Vwave = { {{0, 0}}, {{Vdd, 5e-6}}, {{Vdd, 45e-6}}, {{0, 50e-6}}};
+
+        float V = 0;
+        float t = 0;
+
+        std::vector<std::vector<std::vector<float>>> Iwave;
+
+        for (int i = 0; i < Vwave.size(); i++) {
+            float dv = (Vwave[i][0] - V) / ((Vwave[i][1] - t) / dt);
+            while (t < Vwave[i][1]) {
+                for (int i = 0; i < M; i++) {
+                    for (int j = 0; j < N; j++) {
+                        Vguess(i*N + j) = Vappwl1(i);
+                    }
+                }
+
+                Iwave.push_back(crossbar.ApplyVoltage(Vguess, Vappwl1, Vappwl2, Vappbl1, Vappbl2, dt));
+
+                for (int j = 0; j < M; j++) {
+                    if (Vapp[j]) {
+                        Vappwl1(j) += dv;
+                    }
+                }
+                V += dv;
+                t += dt;
+            }
+        }
+
+        // std::vector<std::vector<float>> Iout_avg;
+        // for (int m = 0; m < M; m++) {
+        //     std::vector<float> row;
+        //     for (int n = 0; n < N; n++) {
+        //         float Iavg = 0;
+        //         for (int j = 0; j < 40; j++) {
+        //             Iavg += Iwave[j+5][m][n];
+        //         }
+        //         Iavg /= 40.;
+        //         row.push_back(Iavg);
+        //     }
+        //     Iout_avg.push_back(row);
+        // }
+        std::vector<std::vector<float>> Iout_avg = Iwave[25];
+
+        std::vector<float> Iout_MAC;
+        for (int n = 0; n < N; n++) {
+            float IMAC = 0;
+            for (int m = 0; m < M; m++) {
+                IMAC += Iout_avg[m][n];
+            }
+            Iout_MAC.push_back(IMAC);
+        }
+
+        output_data.push_back(Iout_avg);
+        output_data_MAC.push_back(Iout_MAC);
     }
 
     auto end_time = std::chrono::high_resolution_clock::now();
     auto execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
     std::cout << "Execution time: " << execution_time << " (ms)" << std::endl;
 
-    std::vector<float> Iout;
-    for (int n = 0; n < N; n++) {
-        float Iavg = 0;
-        for (int i = 0; i < 40; i++) {
-            for (int m = 0; m < M; m++) {
-                Iavg += Iwave[i][m][n];
-            }
-        }
-        Iavg /= 40.;
-        Iout.push_back(Iavg);
+    std::ofstream outfile(top_dir/"output.bin", std::ios::binary);
+
+    if (!outfile) {
+        std::cout << "Failed to open file: " << top_dir/"output.bin" << std::endl;
+        return 1;
     }
 
-    if (print) {
-        std::cout << "Vapplied (boolean):" << std::endl;
-        for (int i = 0; i < Vapp.size(); i++) {
-            std::cout << Vapp[i] << std::endl;
-        }
-        std::cout << std::endl;
+    int64_t depth = output_data.size();
+    int64_t rows = output_data.empty() ? 0 : output_data[0].size();
+    int64_t cols = rows ? output_data[0][0].size() : 0;
 
-        std::cout << "Weights (boolean):" << std::endl;
-        for (int i = 0; i < weights.size(); i++) {
-            for (int j = 0; j < weights[0].size(); j++) {
-                std::cout << weights[i][j] << " ";
-            }
-            std::cout << std::endl;
-        }
-        std::cout << std::endl;
+    outfile.write(reinterpret_cast<const char*>(&depth), sizeof(int64_t));
+    outfile.write(reinterpret_cast<const char*>(&rows), sizeof(int64_t));
+    outfile.write(reinterpret_cast<const char*>(&cols), sizeof(int64_t));
 
-        std::cout << "Iout:" << std::endl;
-        for (int i = 0; i < Iout.size(); i++) {
-            std::cout << Iout[i] << std::endl;
+    for (int64_t i = 0; i < depth; ++i) {
+        for (int64_t j = 0; j < rows; ++j) {
+            outfile.write(reinterpret_cast<const char*>(output_data[i][j].data()), cols * sizeof(float));
         }
     }
+
+    // for (int i = 0; i < output_data.size(); i++) {
+    //     for (int m = 0; m < output_data[i].size(); m++) {
+    //         for (int n = 0; n < output_data[i][m].size(); n++) {
+    //             outfile << output_data[i][m][n] << " ";
+    //         }
+    //         outfile << std::endl;
+    //     }
+    //     outfile << std::endl;
+    // }
+
+    outfile.close();
+
+    outfile = std::ofstream(top_dir/"MAC.bin", std::ios::binary);
+
+    if (!outfile) {
+        std::cout << "Failed to open file: " << top_dir/"MAC.bin" << std::endl;
+        return 1;
+    }
+
+    rows = output_data_MAC.size();
+    cols = output_data_MAC.empty() ? 0 : output_data_MAC[0].size();
+
+    outfile.write(reinterpret_cast<const char*>(&rows), sizeof(int64_t));
+    outfile.write(reinterpret_cast<const char*>(&cols), sizeof(int64_t));
+
+    for (int64_t i = 0; i < rows; ++i) {
+        outfile.write(reinterpret_cast<const char*>(output_data_MAC[i].data()), cols * sizeof(float));
+    }
+
+    // for (int i = 0; i < output_data_MAC.size(); i++) {
+    //     for (int j = 0; j < output_data_MAC[i].size(); j++) {
+    //         outfile << output_data_MAC[i][j] << " ";
+    //     }
+    //     outfile << std::endl;
+    // }
+
+    outfile.close();
+
+    // std::vector<float> Iout;
+    // for (int n = 0; n < N; n++) {
+    //     float Iavg = 0;
+    //     for (int i = 0; i < 40; i++) {
+    //         for (int m = 0; m < M; m++) {
+    //             Iavg += Iwave[i][m][n];
+    //         }
+    //     }
+    //     Iavg /= 40.;
+    //     Iout.push_back(Iavg);
+    // }
+
+    // if (print) {
+    //     std::cout << "Vapplied (boolean):" << std::endl;
+    //     for (int i = 0; i < Vapp.size(); i++) {
+    //         std::cout << Vapp[i] << std::endl;
+    //     }
+    //     std::cout << std::endl;
+
+    //     std::cout << "Weights (boolean):" << std::endl;
+    //     for (int i = 0; i < weights.size(); i++) {
+    //         for (int j = 0; j < weights[0].size(); j++) {
+    //             std::cout << weights[i][j] << " ";
+    //         }
+    //         std::cout << std::endl;
+    //     }
+    //     std::cout << std::endl;
+
+    //     std::cout << "Iout:" << std::endl;
+    //     for (int i = 0; i < Iout.size(); i++) {
+    //         std::cout << Iout[i] << std::endl;
+    //     }
+    // }
+
+    // std::ofstream outfile("out.txt");
+
+    // if (!outfile) {
+    //     std::cout << "No out file" << std::endl;
+    //     return 1;
+    // }
+
+    // for (int i = 0; i < Vapp.size(); i++) {
+    //     outfile << Vapp[i] << std::endl;
+    // }
+    // outfile << std::endl;
+
+    // for (int i = 0; i < weights.size(); i++) {
+    //     for (int j = 0; j < weights[0].size(); j++) {
+    //         outfile << weights[i][j] << " ";
+    //     }
+    //     outfile << std::endl;
+    // }
+    // outfile << std::endl;
+
+    // for (int i = 0; i < M; i++) {
+    //     for (int j = 0; j < N; j++) {
+    //         outfile << Iwave[25][i][j] << " ";
+    //     }
+    //     outfile << std::endl;
+    // }
+    // outfile << std::endl;
+
+    // outfile.close();
 }

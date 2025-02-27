@@ -13,6 +13,7 @@ void CrossbarSimulator::SetRRAM(std::vector<std::vector<bool>> weights) {
         for (int j = 0; j < weights[0].size(); j++) {
             if (weights[i][j]) { RRAM[i][j].Nreal = RRAM[i][j].Ndiscmax; }
             else { RRAM[i][j].Nreal = RRAM[i][j].Ndiscmin; }
+            RRAM[i][j].Treal = RRAM[i][j].T0;
         }
     }
 }

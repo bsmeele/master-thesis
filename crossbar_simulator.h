@@ -34,7 +34,7 @@ class CrossbarSimulator {
         RRAM = std::vector<std::vector<JART_VCM_v1b_var>>(M, std::vector<JART_VCM_v1b_var>(N, JART_VCM_v1b_var()));
 
         // Initialize access transistors to all on
-        access_transistors =  std::vector<std::vector<bool>>(M, std::vector<bool>(N, true));
+        access_transistors = std::vector<std::vector<bool>>(M, std::vector<bool>(N, true));
 
         // Initialize parasitics to some default
         Rswl1 = 1;
