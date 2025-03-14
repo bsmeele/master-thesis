@@ -1,5 +1,6 @@
 #include "nonlinear_crossbar_solver.h"
 #include "crossbar_model/linear_crossbar_solver.h"
+#include "simulation_settings.h"
 
 #include <iostream>
 
@@ -390,9 +391,9 @@ Eigen::VectorXf FixedpointSolve(
 
     Eigen::MatrixXf G(M, N);
 
-    float a = 0.5;
+    float a = non_linear_fixed_point_a;
 
-    int it_max = 100;
+    int it_max = non_linear_fixed_point_it_max;
     int it = 0;
     while (true) {
         // Determine G
@@ -421,7 +422,7 @@ Eigen::VectorXf FixedpointSolve(
             // std::cout << "Nan norm detected, giving tiny nudge" << std::endl;
 
             for (int i = 0; i < Vguess.size(); i++) {
-                Vguess(i) += 1e-6 * ((Vguess(i) < 0) - (Vguess(i) > 0));
+                Vguess(i) += non_linear_fixed_point_voltage_nudge * ((Vguess(i) < 0) - (Vguess(i) > 0));
             }
 
             if (it >= it_max) {
@@ -435,7 +436,7 @@ Eigen::VectorXf FixedpointSolve(
 
         if (print) { std::cout << "Norm: " << Fv.norm() << std::endl; }
         // Check convergence
-        if (Fv.norm() < 1e-6 | it >= it_max) {
+        if (Fv.norm() < non_linear_fixed_point_criterion | it >= it_max) {
             if (print) {
                 std::cout << "V:\n" << Vout << std::endl << std::endl;
                 std::cout << "G:\n" << G << std::endl << std::endl;

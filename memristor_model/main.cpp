@@ -77,5 +77,5 @@ int main() {
 
     outfile.close();
 
-    std::cout << "Simulated in " << total_time/1000. << " us" << std::endl;
+    std::cout << "Simulated in " << total_time/1e6 << " ms" << std::endl;
 }

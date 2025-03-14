@@ -26,6 +26,9 @@ for /f "tokens=1,2 delims=:," %%a in ("%time%") do (
     set /a end_time=%%a*3600 + %%b*60 + %%c
 )
 
+:: Print the start time (optional)
+echo Start time: %time%
+
 :: Print the end time (optional)
 echo End time: %time%
 

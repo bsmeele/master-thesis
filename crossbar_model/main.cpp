@@ -173,7 +173,7 @@ int main(int argc, char* argv[]) {
     Eigen::SparseMatrix<float> G_ABCD = PartiallyPrecomputeG_ABCD(M, N, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl);
 
     for (int i = 0; i < runs; i++) {
-        float Rmin = 100.;
+        float Rmin = 1000.;
         float Rmax = 100000.;
         float Vdd = 1.5;
 
@@ -189,26 +189,92 @@ int main(int argc, char* argv[]) {
 
         Eigen::MatrixXf R = Eigen::MatrixXf::Random(M, N);
         R = (R + Eigen::MatrixXf::Constant(M, N, 1.0)) * 0.5 * (Rmax - Rmin) + Eigen::MatrixXf::Constant(M, N, Rmin);
-        // R = Eigen::MatrixXf::Zero(M, N);
-        // R(0, 0) = 10.;
-        // R(0, 1) = 15.;
-        // R(0, 2) = 20.;
-        // R(1, 0) = 25.;
-        // R(1, 1) = 30.;
-        // R(1, 2) = 35.;
-        // R(2, 0) = 40.;
-        // R(2, 1) = 45.;
-        // R(2, 2) = 50.;
-
+        // if (M == 3 && N == 3) {
+        //     R = Eigen::MatrixXf::Zero(M, N);
+        //     // R(0, 0) = 10.;
+        //     // R(0, 1) = 15.;
+        //     // R(0, 2) = 20.;
+        //     // R(1, 0) = 25.;
+        //     // R(1, 1) = 30.;
+        //     // R(1, 2) = 35.;
+        //     // R(2, 0) = 40.;
+        //     // R(2, 1) = 45.;
+        //     // R(2, 2) = 50.;
+    
+        //     R(0, 0) = 1e4;
+        //     R(0, 1) = 2e4;
+        //     R(0, 2) = 3e4;
+        //     R(1, 0) = 4e4;
+        //     R(1, 1) = 5e4;
+        //     R(1, 2) = 6e4;
+        //     R(2, 0) = 7e4;
+        //     R(2, 1) = 8e4;
+        //     R(2, 2) = 9e4;
+        // }
         // R(0, 0) = 1e4;
         // R(0, 1) = 2e4;
         // R(0, 2) = 3e4;
-        // R(1, 0) = 4e4;
-        // R(1, 1) = 5e4;
-        // R(1, 2) = 6e4;
-        // R(2, 0) = 7e4;
-        // R(2, 1) = 8e4;
-        // R(2, 2) = 9e4;
+        // R(0, 3) = 4e4;
+        // R(0, 4) = 5e4;
+        // R(0, 5) = 6e4;
+        // R(0, 6) = 7e4;
+        // R(0, 7) = 8e4;
+        // R(1, 0) = 9e4;
+        // R(1, 1) = 10e4;
+        // R(1, 2) = 11e4;
+        // R(1, 3) = 12e4;
+        // R(1, 4) = 13e4;
+        // R(1, 5) = 14e4;
+        // R(1, 6) = 15e4;
+        // R(1, 7) = 16e4;
+        // R(2, 0) = 17e4;
+        // R(2, 1) = 18e4;
+        // R(2, 2) = 19e4;
+        // R(2, 3) = 20e4;
+        // R(2, 4) = 21e4;
+        // R(2, 5) = 22e4;
+        // R(2, 6) = 23e4;
+        // R(2, 7) = 24e4;
+        // R(3, 0) = 25e4;
+        // R(3, 1) = 26e4;
+        // R(3, 2) = 27e4;
+        // R(3, 3) = 28e4;
+        // R(3, 4) = 29e4;
+        // R(3, 5) = 30e4;
+        // R(3, 6) = 31e4;
+        // R(3, 7) = 32e4;
+        // R(4, 0) = 33e4;
+        // R(4, 1) = 34e4;
+        // R(4, 2) = 35e4;
+        // R(4, 3) = 36e4;
+        // R(4, 4) = 37e4;
+        // R(4, 5) = 38e4;
+        // R(4, 6) = 39e4;
+        // R(4, 7) = 40e4;
+        // R(5, 0) = 41e4;
+        // R(5, 1) = 42e4;
+        // R(5, 2) = 43e4;
+        // R(5, 3) = 44e4;
+        // R(5, 4) = 45e4;
+        // R(5, 5) = 46e4;
+        // R(5, 6) = 47e4;
+        // R(5, 7) = 48e4;
+        // R(6, 0) = 49e4;
+        // R(6, 1) = 50e4;
+        // R(6, 2) = 51e4;
+        // R(6, 3) = 52e4;
+        // R(6, 4) = 53e4;
+        // R(6, 5) = 54e4;
+        // R(6, 6) = 55e4;
+        // R(6, 7) = 56e4;
+        // R(7, 0) = 57e4;
+        // R(7, 1) = 58e4;
+        // R(7, 2) = 59e4;
+        // R(7, 3) = 60e4;
+        // R(7, 4) = 61e4;
+        // R(7, 5) = 62e4;
+        // R(7, 6) = 63e4;
+        // R(7, 7) = 64e4;
 
         if (print) {
             std::cout << "R:\n" << R << std::endl << std::endl;
@@ -222,9 +288,19 @@ int main(int argc, char* argv[]) {
 
         Eigen::VectorXf Vappwl1 = Eigen::VectorXf::Random(M);
         Vappwl1 = (Vappwl1.array() > 0.5).select(Eigen::VectorXf::Constant(M, Vdd), Eigen::VectorXf::Zero(M));
-        // Vappwl1(0) = 5;
-        // Vappwl1(1) = 7;
-        // Vappwl1(2) = 9;
+        // if (M == 3 && N == 3) {
+        //     Vappwl1(0) = 0.5;
+        //     Vappwl1(1) = 1;
+        //     Vappwl1(2) = 1.5;
+        // }
+        // Vappwl1(0) = 0.5;
+        // Vappwl1(1) = 1;
+        // Vappwl1(2) = 1.5;
+        // Vappwl1(3) = 1;
+        // Vappwl1(4) = 0.5;
+        // Vappwl1(5) = 1;
+        // Vappwl1(6) = 1.5;
+        // Vappwl1(7) = 1;
 
         Eigen::VectorXf Vappwl2 = Eigen::VectorXf::Zero(M);
         Eigen::VectorXf Vappbl1 = Eigen::VectorXf::Zero(M);
@@ -232,6 +308,13 @@ int main(int argc, char* argv[]) {
 
         if (print) {
             std::cout << "Vappwl1:\n" << Vappwl1 << std::endl << std::endl;
+        }
+
+        // Set the initial guess to be the wordline voltage
+        for (int i = 0; i < M; i++) {
+            for (int j = 0; j < N; j++) {
+                V(i*N + j) = Vappwl1(i);
+            }
         }
 
         // if (M == 16 && N == 16 && print) {
