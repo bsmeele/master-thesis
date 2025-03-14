@@ -1,6 +1,7 @@
 #include "nonlinear_crossbar_solver.h"
 #include "crossbar_model/linear_crossbar_solver.h"
 #include "crossbar_simulator.h"
+#include "simulation_settings.h"
 
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
@@ -189,8 +190,13 @@ int main(int argc, char* argv[]) {
         // 0.1 V read voltage
         // width of 50 us
         // 5 us rise and fall time
-        float dt = 1e-6;
-        std::vector<std::array<float, 2>> Vwave = { {{0, 0}}, {{Vdd, 5e-6}}, {{Vdd, 45e-6}}, {{0, 50e-6}}};
+        float dt = simulation_time_step;
+        std::vector<std::array<float, 2>> Vwave = {
+            {{0, 0}},
+            {{voltage_pulse_height, voltage_pulse_rise_time}},
+            {{voltage_pulse_height, voltage_pulse_width - voltage_pulse_fall_time}},
+            {{0, voltage_pulse_width}}
+        };
 
         float V = 0;
         float t = 0;

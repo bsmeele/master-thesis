@@ -26,7 +26,9 @@ class CrossbarSimulator {
 
     Eigen::SparseMatrix<float> partial_G_ABCD;
 
-    CrossbarSimulator(int M, int N) {
+    Eigen::ConjugateGradient<Eigen::SparseMatrix<float>> linear_solver;
+
+    CrossbarSimulator(int M, int N) : linear_solver() {
         this->M = M;
         this->N = N;
 

@@ -24,10 +24,12 @@ Eigen::VectorXf BroydenInvSolve(
     std::vector<std::vector<bool>> access_transistors,
     Eigen::VectorXf Vguess,  // Initial guess for the nodal voltages. Supplying a zero vector acts as if no guess is given
     Eigen::SparseMatrix<float> G_ABCD,  // A partially precomputed version of the G_ABCD matrix
+    const Eigen::VectorXf E,
     const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,  // Applied voltages to the wordlines of the crossbar
     const Eigen::VectorXf& Vappbl1, const Eigen::VectorXf& Vappbl2,  // Applied voltages to the bitlines of the crossbar
     const float Rswl1, const float Rswl2, const float Rsbl1, const float Rsbl2,  // Resitances of the wordline and bitline voltage sources
     const float Rwl, const float Rbl,  // Wordline and bitline resistances of the crossbar
+    Eigen::ConjugateGradient<Eigen::SparseMatrix<float>>& solver,
     const bool print  // Boolean variable to print some debug information, default false
 ) {
     if (RRAM.size() == 0) { return Eigen::VectorXf(0); }
@@ -48,7 +50,7 @@ Eigen::VectorXf BroydenInvSolve(
     }
 
     // Calculate initial Vout
-    Eigen::VectorXf Vout = SolveCam(G, Vguess, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl);
+    Eigen::VectorXf Vout = SolveCam(G, Vguess, G_ABCD, E, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, solver);
     Eigen::VectorXf Fv = Vout - Vguess;
 
     // Calculate initial inverse Jacobian (Scaled identity matrix, finite difference, or other)
@@ -119,7 +121,7 @@ Eigen::VectorXf BroydenInvSolve(
         }
 
         // Calculate V
-        Vout = SolveCam(G, Vguess, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl);
+        Vout = SolveCam(G, Vguess, G_ABCD, E, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, solver);
         Eigen::VectorXf Fv_new = Vout - Vguess;
         Eigen::VectorXf dF = Fv_new - Fv;
 
@@ -144,10 +146,12 @@ Eigen::VectorXf BroydenSolve(
     std::vector<std::vector<bool>> access_transistors,
     Eigen::VectorXf Vguess,  // Initial guess for the nodal voltages. Supplying a zero vector acts as if no guess is given
     Eigen::SparseMatrix<float> G_ABCD,  // A partially precomputed version of the G_ABCD matrix
+    const Eigen::VectorXf E,
     const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,  // Applied voltages to the wordlines of the crossbar
     const Eigen::VectorXf& Vappbl1, const Eigen::VectorXf& Vappbl2,  // Applied voltages to the bitlines of the crossbar
     const float Rswl1, const float Rswl2, const float Rsbl1, const float Rsbl2,  // Resitances of the wordline and bitline voltage sources
     const float Rwl, const float Rbl,  // Wordline and bitline resistances of the crossbar
+    Eigen::ConjugateGradient<Eigen::SparseMatrix<float>>& solver,
     const bool print  // Boolean variable to print some debug information, default false
 ) {
     if (RRAM.size() == 0) { return Eigen::VectorXf(0); }
@@ -168,7 +172,7 @@ Eigen::VectorXf BroydenSolve(
     }
 
     // Calculate initial Vout
-    Eigen::VectorXf Vout = SolveCam(G, Vguess, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl);
+    Eigen::VectorXf Vout = SolveCam(G, Vguess, G_ABCD, E, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, solver);
     Eigen::VectorXf Fv = Vout - Vguess;
 
     // Calculate initial Jacobian (Scaled identity matrix, finite difference, or other)
@@ -238,7 +242,7 @@ Eigen::VectorXf BroydenSolve(
         }
 
         // Calculate V
-        Vout = SolveCam(G, Vguess, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl);
+        Vout = SolveCam(G, Vguess, G_ABCD, E, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, solver);
         Eigen::VectorXf Fv_new = Vout - Vguess;
 
         // Update Jacobian
@@ -261,10 +265,12 @@ Eigen::VectorXf NewtonRaphsonSolve(
     std::vector<std::vector<bool>> access_transistors,
     Eigen::VectorXf Vguess,  // Initial guess for the nodal voltages. Supplying a zero vector acts as if no guess is given
     Eigen::SparseMatrix<float> G_ABCD,  // A partially precomputed version of the G_ABCD matrix
+    const Eigen::VectorXf E,
     const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,  // Applied voltages to the wordlines of the crossbar
     const Eigen::VectorXf& Vappbl1, const Eigen::VectorXf& Vappbl2,  // Applied voltages to the bitlines of the crossbar
     const float Rswl1, const float Rswl2, const float Rsbl1, const float Rsbl2,  // Resitances of the wordline and bitline voltage sources
     const float Rwl, const float Rbl,  // Wordline and bitline resistances of the crossbar
+    Eigen::ConjugateGradient<Eigen::SparseMatrix<float>>& solver,
     const bool print  // Boolean variable to print some debug information, default false
 ) {
     if (RRAM.size() == 0) { return Eigen::VectorXf(0); }
@@ -291,7 +297,7 @@ Eigen::VectorXf NewtonRaphsonSolve(
         }
 
         // Calculate Vout
-        Eigen::VectorXf Vout = SolveCam(G, Vguess, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl);
+        Eigen::VectorXf Vout = SolveCam(G, Vguess, G_ABCD, E, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, solver);
         Eigen::VectorXf Fv = Vout - Vguess;
 
         // For some very specific cases the SolveCam() funtion returns NANs as voltages
@@ -352,7 +358,7 @@ Eigen::VectorXf NewtonRaphsonSolve(
                 }
             }
 
-            Eigen::VectorXf Fj = SolveCam(G, Vguess, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl) - Vguess;
+            Eigen::VectorXf Fj = SolveCam(G, Vguess, G_ABCD, E, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, solver) - Vguess;
 
             J.col(col) = (Fj - Fv) / delta;
 
@@ -379,10 +385,12 @@ Eigen::VectorXf FixedpointSolve(
     std::vector<std::vector<bool>> access_transistors,  // Matrix containing access transistors. Assumed to be ideal, thus true means on/closed, false means off/open
     Eigen::VectorXf Vguess,  // Initial guess for the nodal voltages. Supplying a zero vector acts as if no guess is given
     Eigen::SparseMatrix<float> G_ABCD,  // A partially precomputed version of the G_ABCD matrix
+    const Eigen::VectorXf E,
     const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,  // Applied voltages to the wordlines of the crossbar
     const Eigen::VectorXf& Vappbl1, const Eigen::VectorXf& Vappbl2,  // Applied voltages to the bitlines of the crossbar
     const float Rswl1, const float Rswl2, const float Rsbl1, const float Rsbl2,  // Resitances of the wordline and bitline voltage sources
     const float Rwl, const float Rbl,  // Wordline and bitline resistances of the crossbar
+    Eigen::ConjugateGradient<Eigen::SparseMatrix<float>>& solver,
     const bool print  // Boolean variable to print some debug information, default false
 ) {
     if (RRAM.size() == 0) { return Eigen::VectorXf(0); }
@@ -409,7 +417,7 @@ Eigen::VectorXf FixedpointSolve(
         }
         
         // Calculate Vout
-        Eigen::VectorXf Vout = SolveCam(G, Vguess, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl);
+        Eigen::VectorXf Vout = SolveCam(G, Vguess, G_ABCD, E, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, solver);
         Eigen::VectorXf Fv = Vout - Vguess;
 
         // For some very specific cases the SolveCam() funtion returns NANs as voltages
@@ -435,6 +443,7 @@ Eigen::VectorXf FixedpointSolve(
         }
 
         if (print) { std::cout << "Norm: " << Fv.norm() << std::endl; }
+        // std::cout << "Norm: " << Fv.norm() << std::endl;
         // Check convergence
         if (Fv.norm() < non_linear_fixed_point_criterion | it >= it_max) {
             if (print) {
@@ -453,7 +462,7 @@ Eigen::VectorXf FixedpointSolve(
         }
 
         // Update Vguess
-        Vguess += a * (Vout - Vguess);
+        Vguess += a * Fv;
 
         it++;
     }

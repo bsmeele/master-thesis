@@ -172,6 +172,11 @@ int main(int argc, char* argv[]) {
 
     Eigen::SparseMatrix<float> G_ABCD = PartiallyPrecomputeG_ABCD(M, N, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl);
 
+    // Eigen::SparseLU<Eigen::SparseMatrix<float>> solver;
+    Eigen::ConjugateGradient<Eigen::SparseMatrix<float>> solver;
+    // Eigen::BiCGSTAB<Eigen::SparseMatrix<float>> solver;
+    // solver.analyzePattern(G_ABCD);
+
     for (int i = 0; i < runs; i++) {
         float Rmin = 1000.;
         float Rmax = 100000.;
@@ -309,6 +314,8 @@ int main(int argc, char* argv[]) {
         if (print) {
             std::cout << "Vappwl1:\n" << Vappwl1 << std::endl << std::endl;
         }
+        
+        Eigen::VectorXf E = ComputeE(M, N, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl);
 
         // Set the initial guess to be the wordline voltage
         for (int i = 0; i < M; i++) {
@@ -324,7 +331,7 @@ int main(int argc, char* argv[]) {
 
         auto start_time = std::chrono::high_resolution_clock::now();
 
-        Eigen::VectorXf Vout = SolveCam(G, V, G_ABCD, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, false);
+        Eigen::VectorXf Vout = SolveCam(G, V, G_ABCD, E, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, solver, false);
 
         auto end_time = std::chrono::high_resolution_clock::now();
 
@@ -353,13 +360,13 @@ int main(int argc, char* argv[]) {
             std::cout << std::endl;
         }
 
-        auto execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-        std::cout << "Execution time: " << execution_time << " (ms)" << std::endl;
+        auto execution_time = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
+        std::cout << "Execution time: " << execution_time << " (us)" << std::endl;
 
         total_time += execution_time;
     }
     
     if (runs > 1) {
-        std::cout << "Average execution time: " << total_time/runs << " ms" << std::endl;
+        std::cout << "Average execution time: " << total_time/runs << " us" << std::endl;
     }
 }
