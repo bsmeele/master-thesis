@@ -295,19 +295,7 @@ std::array<double, 3> JART_VCM_v1b_var::SolveFixedpoint(double V_guess, double V
         double Fv = V_schottky - V_guess;
         if (fabs(Fv) < memristor_fixedpoint_criterion) { return {V_schottky, V_discplugserial, I_schottky}; }
 
-        // V_guess = (1-a) * V_guess + a * V_schottky;
-        // a = it/1e4;  // 262
-        // a = 1 - cos(it/1e3 * M_PI / 2);  // 361
-        // a = -(cos(M_PI * it/1e3) - 1) / 2;  // 308
-        // a = pow(it/1e3, 5);  // 2002
-        // a = (it/1e3 < 0.5) ? 16 * pow(it/1e3, 5) : 1 - pow(-2 * it/1e3 + 2, 5) / 2;  // 1291
-        // a = pow(it/1e2, 5);  // 315
-        // a = pow(it/1e2, 4);  // 310
-        // a = pow(it/1e2, 5);  // 315
-        // a = pow(it/1e3, 2);  // 378
-        // a = 5e-3;  // 213
-
-        double a = (it > 100) ? 5e-2 : 5e-3;  // 135
+        double a = (it > 100) ? 5e-2 : 5e-3;
 
         V_guess = V_guess + a * Fv;
         if (V_applied > 0) {
@@ -498,6 +486,7 @@ double JART_VCM_v1b_var::ApplyVoltage(double V_applied, double dt) {
             Nold = Nreal;
             trig = 1;
         }
+        // Unused variation model code:
         // if (V_applied < -2e-5 && trig == 1) {  // SET at negative voltage
         //     rvar = rold + (rnew - rold) * ((Nreal - Nold) / (Ndiscmax - Nold));
         //     lvar = lold + (lnew - lold) * ((Nreal - Nold) / (Ndiscmax - Nold));
