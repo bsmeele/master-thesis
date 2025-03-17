@@ -72,6 +72,8 @@ class JART_VCM_v1b_var {
 
         double Nreal; // oxygen vacancy concentration of the disc region [nm]
 
+        double tmp;
+
         void UpdateFilamentArea();
         void UpdateTemperature(double V_schottky, double V_discplugserial, double I_schottky);
         double ComputeSchottkyCurrent(double V_schottky);
@@ -100,6 +102,8 @@ class JART_VCM_v1b_var {
             UpdateFilamentArea();
             UpdateResistance(0);
             UpdateTemperature(0, 0, 0);
+
+            tmp = 0;
         }
         double ApplyVoltage(double V_applied, double dt);
         double GetResistance(double V_applied);

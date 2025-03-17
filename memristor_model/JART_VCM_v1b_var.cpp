@@ -144,7 +144,7 @@ std::array<double, 3> JART_VCM_v1b_var::SolveBisection(double V_low, double V_hi
         else { V_high = V_schottky; }
         
         if (it > memristor_bisection_it_max) {
-            // std::cout << "Iteration limit reached, err: " << err << std::endl;
+            std::cout << "Iteration limit reached, err: " << err << std::endl;
             // std::cout << V_low << " " << V_schottky << " " << V_high << std::endl;
             // std::cout << I_schottky << " " << V_discplugserial << " " << V_applied - V_discplugserial - V_schottky << std::endl;
             // return {NAN, NAN, NAN};
@@ -281,7 +281,9 @@ std::array<double, 3> JART_VCM_v1b_var::SolveFixedpoint(double V_guess, double V
     double V_discplugserial;
 
     int it = 0;
-    double a = 1.;
+    // double a = 1.;
+    double a = 1e-3;
+    double Fv_prev = INFINITY;
     while (true) {
         I_schottky = ComputeSchottkyCurrent(V_guess);
         UpdateResistance(I_schottky);
@@ -291,15 +293,23 @@ std::array<double, 3> JART_VCM_v1b_var::SolveFixedpoint(double V_guess, double V
         double V_schottky = V_applied - V_discplugserial;
 
         double Fv = V_schottky - V_guess;
-        if (fabs(Fv) < 1e-6) { return {V_schottky, V_discplugserial, I_schottky}; }
+        if (fabs(Fv) < memristor_fixedpoint_criterion) { return {V_schottky, V_discplugserial, I_schottky}; }
 
         // V_guess = (1-a) * V_guess + a * V_schottky;
-        // a = 1 - cos(it/1e3 * M_PI / 2);
-        a = -(cos(M_PI * it/1e3) - 1) / 2;
-        // a = pow(it/1e3, 5);
-        // a = (it/1e3 < 0.5) ? 16 * pow(it/1e3, 5) : 1 - pow(-2 * it/1e3 + 2, 5) / 2;
+        // a = it/1e4;  // 262
+        // a = 1 - cos(it/1e3 * M_PI / 2);  // 361
+        // a = -(cos(M_PI * it/1e3) - 1) / 2;  // 308
+        // a = pow(it/1e3, 5);  // 2002
+        // a = (it/1e3 < 0.5) ? 16 * pow(it/1e3, 5) : 1 - pow(-2 * it/1e3 + 2, 5) / 2;  // 1291
+        // a = pow(it/1e2, 5);  // 315
+        // a = pow(it/1e2, 4);  // 310
+        // a = pow(it/1e2, 5);  // 315
+        // a = pow(it/1e3, 2);  // 378
+        // a = 5e-3;  // 213
+
+        double a = (it > 100) ? 5e-2 : 5e-3;  // 135
+
         V_guess = V_guess + a * Fv;
-        // V_guess = V_guess + (it / 1e4) * Fv;
         if (V_applied > 0) {
             if (V_guess > V_applied) { V_guess = V_applied; }
             else if (V_guess < 0) { V_guess = 0; }
@@ -318,72 +328,62 @@ std::array<double, 3> JART_VCM_v1b_var::SolveFixedpoint(double V_guess, double V
         // std::cout << std::endl;
 
         if (std::isinf(V_guess)) {
-            std::cout << "inf detected" << std::endl;
-            std::cout << "Vapplied: " << V_applied << std::endl;
-            std::cout << "Nreal: " << Nreal << std::endl;
-            std::cout << "T: " << Treal << std::endl;
-            std::cout << "Vguess: " << V_guess << std::endl;
-            std::cout << "F(V): " << Fv << std::endl;
-            std::cout << "Vschottky: " << V_schottky << std::endl;
-            std::cout << "Vdiscplugser: " << V_discplugserial << std::endl;
-            std::cout << "I: " << I_schottky << std::endl;
-            std::cout << it << std::endl;
-            assert(false);
+            // std::cout << "inf detected" << std::endl;
+            // std::cout << "Vapplied: " << V_applied << std::endl;
+            // std::cout << "Nreal: " << Nreal << std::endl;
+            // std::cout << "T: " << Treal << std::endl;
+            // std::cout << "Vguess: " << V_guess << std::endl;
+            // std::cout << "F(V): " << Fv << std::endl;
+            // std::cout << "Vschottky: " << V_schottky << std::endl;
+            // std::cout << "Vdiscplugser: " << V_discplugserial << std::endl;
+            // std::cout << "I: " << I_schottky << std::endl;
+            // std::cout << it << std::endl;
+            // assert(false);
             return {NAN, NAN, NAN};
         }
         if (std::isnan(V_guess)) {
-            std::cout << "NAN detected" << std::endl;
-            std::cout << "Vapplied: " << V_applied << std::endl;
-            std::cout << "Nreal: " << Nreal << std::endl;
-            std::cout << "T: " << Treal << std::endl;
-            std::cout << "Vguess: " << V_guess << std::endl;
-            std::cout << "F(V): " << Fv << std::endl;
-            std::cout << "Vschottky: " << V_schottky << std::endl;
-            std::cout << "Vdiscplugser: " << V_discplugserial << std::endl;
-            std::cout << "I: " << I_schottky << std::endl;
-            std::cout << it << std::endl;
-            assert(false);
+            // std::cout << "NAN detected" << std::endl;
+            // std::cout << "Vapplied: " << V_applied << std::endl;
+            // std::cout << "Nreal: " << Nreal << std::endl;
+            // std::cout << "T: " << Treal << std::endl;
+            // std::cout << "Vguess: " << V_guess << std::endl;
+            // std::cout << "F(V): " << Fv << std::endl;
+            // std::cout << "Vschottky: " << V_schottky << std::endl;
+            // std::cout << "Vdiscplugser: " << V_discplugserial << std::endl;
+            // std::cout << "I: " << I_schottky << std::endl;
+            // std::cout << it << std::endl;
+            // assert(false);
             return {NAN, NAN, NAN};
         }
         if (std::isnan(I_schottky) || std::isnan(V_discplugserial) || std::isnan(Fv)) {
-            std::cout << "nan detected" << std::endl;
-            std::cout << "Vapplied: " << V_applied << std::endl;
-            std::cout << "Nreal: " << Nreal << std::endl;
-            std::cout << "T: " << Treal << std::endl;
-            std::cout << "Vguess: " << V_guess << std::endl;
-            std::cout << "F(V): " << Fv << std::endl;
-            std::cout << "Vschottky: " << V_schottky << std::endl;
-            std::cout << "Vdiscplugser: " << V_discplugserial << std::endl;
-            std::cout << "I: " << I_schottky << std::endl;
-            std::cout << it << std::endl;
-            assert(false);
+            // std::cout << "nan detected" << std::endl;
+            // std::cout << "Vapplied: " << V_applied << std::endl;
+            // std::cout << "Nreal: " << Nreal << std::endl;
+            // std::cout << "T: " << Treal << std::endl;
+            // std::cout << "Vguess: " << V_guess << std::endl;
+            // std::cout << "F(V): " << Fv << std::endl;
+            // std::cout << "Vschottky: " << V_schottky << std::endl;
+            // std::cout << "Vdiscplugser: " << V_discplugserial << std::endl;
+            // std::cout << "I: " << I_schottky << std::endl;
+            // std::cout << it << std::endl;
+            // assert(false);
             return {NAN, NAN, NAN};
         }
-        if (it > 1e3) {
+        if (it > memristor_fixedpoint_it_max) {
             std::cout << "Iteration limit reached, err: " << Fv << std::endl;
-            std::cout << "Vapplied: " << V_applied << std::endl;
-            std::cout << "Nreal: " << Nreal << std::endl;
-            std::cout << "T: " << Treal << std::endl;
-            std::cout << "Vguess: " << V_guess << std::endl;
-            std::cout << "F(V): " << Fv << std::endl;
-            std::cout << "Vschottky: " << V_schottky << std::endl;
-            std::cout << "Vdiscplugser: " << V_discplugserial << std::endl;
-            std::cout << "I: " << I_schottky << std::endl;
-            std::cout << it << std::endl;
-            assert(false);
+            // std::cout << "Vapplied: " << V_applied << std::endl;
+            // std::cout << "Nreal: " << Nreal << std::endl;
+            // std::cout << "T: " << Treal << std::endl;
+            // std::cout << "Vguess: " << V_guess << std::endl;
+            // std::cout << "F(V): " << Fv << std::endl;
+            // std::cout << "Vschottky: " << V_schottky << std::endl;
+            // std::cout << "Vdiscplugser: " << V_discplugserial << std::endl;
+            // std::cout << "I: " << I_schottky << std::endl;
+            // std::cout << it << std::endl;
+            // assert(false);
             // return {NAN, NAN, NAN};
             return {V_schottky, V_discplugserial, I_schottky};
         }
-        
-        // if (V_applied > tresh) {
-        //     std::cout << "V applied: " << V_applied << std::endl;
-        //     std::cout << "V schottky: " << V_schottky << std::endl;
-        //     std::cout << "I schottky: " << I_schottky << std::endl;
-        //     std::cout << "V discplugserial: " << V_discplugserial << std::endl;
-        //     std::cout << "Criterion: " << fabs((V_applied - V_discplugserial) - V_schottky) << std::endl;
-        //     std::cout << "V_applied - V_discplugserial: " << V_applied - V_discplugserial << std::endl;
-        //     std::cout << std::endl;
-        // }
         
         it += 1;
     }
@@ -512,95 +512,51 @@ double JART_VCM_v1b_var::ApplyVoltage(double V_applied, double dt) {
     double V_schottky;
     double V_discplugserial;
     double I_schottky;
-    if (V_applied < 0) {
-        auto result = SolveBisection(V_applied, 0, V_applied);
-        V_schottky = result[0];
-        V_discplugserial = result[1];
-        I_schottky = result[2];
-    } else if (V_applied < phibn0 - phin) {
-        auto result = SolveBisection(0, V_applied, V_applied);
-        V_schottky = result[0];
-        V_discplugserial = result[1];
-        I_schottky = result[2];
-    } else if (V_applied >= phibn0 - phin) {
-        // std::vector<std::array<double, 3>> roots;
-        // multi_solve_bisection(0, V_applied, V_applied, roots);
-        // if (roots.size() > 1) {
-        //     std::cout << roots.size() << std::endl;
-        // }
+    std::array<double, 3> result;
 
-        auto result1 = SolveBisection(0, phibn0 - phin, V_applied);
-        auto result2 = SolveBisection(phibn0 - phin, V_applied, V_applied);
-        // auto result3 = solve_bisection(result1[0], phibn0 - phin, V_applied);
-        // auto result4 = solve_bisection(0, result1[0], V_applied);
-
-        if (fabs(result2[0] - V_schottky_prev) < fabs(result1[0] - V_schottky_prev)) {
-            V_schottky = result2[0];
-            V_discplugserial = result2[1];
-            I_schottky = result2[2];
-        } else {
-            V_schottky = result1[0];
-            V_discplugserial = result1[1];
-            I_schottky = result1[2];
-        }
-
-        // if (V_applied < V_prev) {
-        //     std::swap(result1, result2);
-        // }
-
-        // if (std::isnan(result1[0]) || std::isnan(result1[1]) || std::isnan(result1[2]) || std::isinf(result1[0]) || std::isinf(result1[1]) || std::isinf(result1[2])) {
-        //     V_schottky = result2[0];
-        //     V_discplugserial = result2[1];
-        //     I_schottky = result2[2];
-        // } else {
-        //     V_schottky = result1[0];
-        //     V_discplugserial = result1[1];
-        //     I_schottky = result1[2];
-        // }
-
-        // if (!std::isnan(result2[0]) && !std::isnan(result3[0]) && !std::isnan(result4[0]) && fabs(result3[0] - result4[0]) > 1e-3) {
-        //     std::cout << result2[0] << " " << result3[0] << " " << result4[0] << std::endl;
-        // }
-
-        // if (V_applied > V_prev) {
-        //     std::swap(result2, result4);
-        // }
-
-        // if (!std::isnan(result2[0]) && !std::isnan(result2[1]) && !std::isnan(result2[2]) && !std::isinf(result2[0]) && !std::isinf(result2[1]) && !std::isinf(result2[2])) {
-        //     V_schottky = result2[0];
-        //     V_discplugserial = result2[1];
-        //     I_schottky = result2[2];
-        // } else if (!std::isnan(result3[0]) && !std::isnan(result3[1]) && !std::isnan(result3[2]) && !std::isinf(result3[0]) && !std::isinf(result3[1]) && !std::isinf(result3[2])) {
-        //     V_schottky = result3[0];
-        //     V_discplugserial = result3[1];
-        //     I_schottky = result3[2];
-        // } else {
-        //     V_schottky = result4[0];
-        //     V_discplugserial = result4[1];
-        //     I_schottky = result4[2];
-        // }
-
-        // auto result = solve_bisection(0, V_applied, V_applied);
-        // V_schottky = result[0];
-        // V_discplugserial = result[1];
-        // I_schottky = result[2];
-    } else {
-        V_schottky = 0;
-        V_discplugserial = 0;
-        I_schottky = 0;
+    switch (memristor_solving_method) {
+        case 0:
+            if (V_applied < 0) {
+                result = SolveBisection(V_applied, 0, V_applied);
+                V_schottky = result[0];
+                V_discplugserial = result[1];
+                I_schottky = result[2];
+            } else if (V_applied < phibn0 - phin) {
+                result = SolveBisection(0, V_applied, V_applied);
+                V_schottky = result[0];
+                V_discplugserial = result[1];
+                I_schottky = result[2];
+            } else if (V_applied >= phibn0 - phin) {
+                auto result1 = SolveBisection(0, phibn0 - phin, V_applied);
+                auto result2 = SolveBisection(phibn0 - phin, V_applied, V_applied);
+            
+                if (fabs(result2[0] - V_schottky_prev) < fabs(result1[0] - V_schottky_prev)) {
+                    V_schottky = result2[0];
+                    V_discplugserial = result2[1];
+                    I_schottky = result2[2];
+                } else {
+                    V_schottky = result1[0];
+                    V_discplugserial = result1[1];
+                    I_schottky = result1[2];
+                }
+            } else {
+                V_schottky = 0;
+                V_discplugserial = 0;
+                I_schottky = 0;
+            }
+            break;
+        case 1:
+            result = SolveFixedpoint(V_schottky_prev, V_applied);
+            V_schottky = result[0];
+            V_discplugserial = result[1];
+            I_schottky = result[2];
+            break;
+        default:
+            result = SolveFixedpoint(V_schottky_prev, V_applied);
+            V_schottky = result[0];
+            V_discplugserial = result[1];
+            I_schottky = result[2];
     }
-
-    // auto result = (V_applied < 0) ? SolveBisection(V_applied, 0, V_applied) : SolveFixedpoint(V_schottky_prev, V_applied);
-    // auto result = SolveFixedpoint(V_schottky_prev, V_applied);
-    // V_schottky = result[0];
-    // V_discplugserial = result[1];
-    // I_schottky = result[2];
-
-    // auto result = solve_fixedpoint(V_schottky_prev, V_applied);
-    // auto result = solve_brent(0, V_applied, V_applied);
-    // V_schottky = result[0];
-    // V_discplugserial = result[1];
-    // I_schottky = result[2];
 
     if (std::isinf(V_schottky) || std::isinf(I_schottky) || std::isinf(V_discplugserial)) {
         // std::cout << "inf detected" << std::endl;

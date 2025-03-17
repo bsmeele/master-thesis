@@ -2,7 +2,8 @@ import matplotlib.pyplot as plt
 import csv
 
 def main():
-    file_path = 'out_files/out.txt'
+    # file_path = 'out_files/out.txt'
+    file_path = 'out.txt'
     # file_path = 'out_16x16_bottom_left.txt'
     # file_path = 'out_16x16_top_right.txt'
     # file_path = 'out_16x16_top_right_access_transistors.txt'

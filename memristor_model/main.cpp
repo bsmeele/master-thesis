@@ -1,4 +1,5 @@
 #include "JART_VCM_v1b_var.h"
+#include "../simulation_settings.h"
 
 #include <iostream>
 #include <fstream>
@@ -27,7 +28,7 @@ int main() {
 
     JART_VCM_v1b_var memristor = JART_VCM_v1b_var();
 
-    const double dt = 1e-4;
+    const double dt = simulation_time_step;
 
     std::vector<std::array<double, 2>> Vwave;
     Vwave.push_back({0, 0});
