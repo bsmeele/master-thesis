@@ -347,6 +347,8 @@ def main():
         else:
             j += 1
 
+    I_dif_reg = [(i_dif / i) if (i != 0) else 0 for i_dif, i in zip(I_dif, I)]
+
     plt.figure(figsize=(10, 7))
 
     # plt.subplot(2, 2, 1)
@@ -406,14 +408,27 @@ def main():
     # plt.grid(True)
 
     plt.subplot(2, 2, 4)
-    plt.plot(t_dif, I_dif, '-')
+    plt.plot(t_dif, I_dif, '-', label='absolute', color='blue')
+    plt.plot(t_dif, I_dif_reg, '-', label='relative', color='orange')
     plt.yscale('log')
     plt.xlim(0, 6)
-    plt.ylim(1e-12, 1e-3)
+    # plt.ylim(1e-12, 1e-3)
+    plt.ylim(1e-12, 1e2)
     plt.title('Current difference between Cadence and C++ simulation')
     plt.xlabel('Time (s)')
     plt.ylabel('Current difference (A)')
+    plt.legend()
     plt.grid(True)
+
+    # plt.subplot(2, 2, 4)
+    # plt.plot(t_dif, I_dif_reg, '-')
+    # plt.yscale('log')
+    # plt.xlim(0, 6)
+    # # plt.ylim(1e-12, 1e-3)
+    # plt.title('Regularized current difference between Cadence and C++ simulation')
+    # plt.xlabel('Time (s)')
+    # plt.ylabel('Current difference (A)')
+    # plt.grid(True)
 
     # plt.subplot(2, 2, 4)
     # # plt.plot(t, R_disc, '-', label="c++", color='blue')
