@@ -458,6 +458,11 @@ Eigen::VectorXf FixedpointSolve(
                 }
             }
 
+            // if (it >= it_max) {
+            //     std::cout << "Iteration limit reached: " << it << std::endl;
+            //     std::cout << "Norm: " << Fv.norm() << std::endl;
+            // }
+
             return Vout;
         }
 

@@ -21,7 +21,7 @@ const double memristor_get_resistance_voltage_threshold = 1e-6;  // The maximum 
 // Non-linear solver
 const float non_linear_fixed_point_a = 1.;               // Dampening factor of the fixed point solver
 const float non_linear_fixed_point_it_max = 100;          // Iteration limit of the fixed point solver
-const float non_linear_fixed_point_voltage_nudge = 1e-6;  // Amount the voltage guess will be nudged by if a NAN is returned from the linear solver
+const float non_linear_fixed_point_voltage_nudge = 1e-9;  // Amount the voltage guess will be nudged by if a NAN is returned from the linear solver
 const float non_linear_fixed_point_criterion = 1e-6;      // Exit criterion of the fixed point solver
 
 // Voltage pulse (as used in RRAM_validation.cpp)

@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Set the base directory where the folders are located
-base_dir="./weights_inputs/bin"
+# base_dir="./weights_inputs/bin"
+base_dir="./data/bin/batch_1"
 
 # Capture the start ime in seconds (hours * 3600 + minutes * 60 + seconds)
 start_time=$(date +%s)

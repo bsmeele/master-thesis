@@ -27,8 +27,12 @@ int main() {
     }
 
     JART_VCM_v1b_var memristor = JART_VCM_v1b_var();
+    memristor.Ndiscmin = 0.008;
+    memristor.Ninit = 0.008;
+    memristor.Ninitreal = 0.008;
+    memristor.Nreal = 0.008;
 
-    const double dt = simulation_time_step;
+    const double dt = 1e-3;
 
     std::vector<std::array<double, 2>> Vwave;
     Vwave.push_back({0, 0});
@@ -63,6 +67,8 @@ int main() {
 
             auto execution_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time).count();
             total_time += execution_time;
+
+            if (fabs(t - 4.5) < 1e-6) { memristor.Nreal = memristor.Ndiscmin; }
 
             if (std::isnan(I)) { return 1; }
             outfile << t << " " << V << " " << I << " " << memristor.Nreal << " " << memristor.Treal

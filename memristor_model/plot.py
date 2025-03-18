@@ -338,7 +338,7 @@ def main():
     t_dif = []
     I_dif = []
     while True:
-        if i >= len(V) or j >= len(c_AE)-1:
+        if i >= len(I) or j >= len(c_AE)-1:
             break
         if c_t_AE[j] <= t[i] and c_t_AE[j+1] >= t[i]:
             t_dif.append(t[i])
@@ -347,7 +347,31 @@ def main():
         else:
             j += 1
 
-    I_dif_reg = [(i_dif / i) if (i != 0) else 0 for i_dif, i in zip(I_dif, I)]
+    I_dif_reg = [(i_dif / i) if (i != 0) else 0 for i_dif, i in zip(I_dif, I_abs)]
+
+    i = 0
+    j = 0
+    N_dif = []
+    while True:
+        if i >= len(N) or j >= len(c_Nreal)-1:
+            break
+        if c_t_Nreal[j] <= t[i] and c_t_Nreal[j+1] >= t[i]:
+            N_dif.append(abs((c_Nreal[j] + ((c_Nreal[j+1] - c_Nreal[j])/(c_t_Nreal[j+1] - c_t_Nreal[j])) * (t[i] - c_t_Nreal[j])) - N[i]))
+            i += 1
+        else:
+            j += 1
+
+    i = 0
+    j = 0
+    T_dif = []
+    while True:
+        if i >= len(T) or j >= len(c_Treal)-1:
+            break
+        if c_t_T[j] <= t[i] and c_t_T[j+1] >= t[i]:
+            T_dif.append(abs((c_T[j] + ((c_T[j+1] - c_T[j])/(c_t_T[j+1] - c_t_T[j])) * (t[i] - c_t_T[j])) - T[i]))
+            i += 1
+        else:
+            j += 1
 
     plt.figure(figsize=(10, 7))
 
@@ -374,6 +398,7 @@ def main():
     plt.subplot(2, 2, 2)
     plt.plot(t, N, '-', markersize=2, label='C++', color='blue')
     plt.plot(c_t_Nreal, c_Nreal, '-', markersize=2, label='Cadence', color='orange')
+    plt.plot(t_dif, N_dif, '-', markersize=2, label='Error', color='purple')
     plt.yscale('log')
     plt.xlim(0, 6)
     plt.title('Oxygen vacancy concentration of the disc')
@@ -385,6 +410,7 @@ def main():
     plt.subplot(2, 2, 3)
     plt.plot(t, T, '-', markersize=2, label='C++', color='blue')
     plt.plot(c_t_T, c_T, '-', markersize=2, label='Cadence', color='orange')
+    plt.plot(t_dif, T_dif, '-', markersize=2, label='Error', color='purple')
     plt.xlim(0, 6)
     plt.title('Temperature')
     plt.xlabel('Time (s)')
