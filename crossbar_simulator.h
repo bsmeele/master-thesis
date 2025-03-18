@@ -4,8 +4,8 @@
 #include "memristor_model/JART_VCM_v1b_var.h"
 #include "crossbar_model/linear_crossbar_solver.h"
 
-#include <Eigen/Dense>
-#include <Eigen/Sparse>
+#include </shares/bulk/earapidis/eigen/eigen/Eigen/Dense>
+#include </shares/bulk/earapidis/eigen/eigen/Eigen/Sparse>
 #include <vector>
 #include <string>
 
