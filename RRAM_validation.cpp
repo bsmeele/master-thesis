@@ -382,21 +382,21 @@ int main(int argc, char* argv[]) {
 
     outfile.close();
     
-    std::vector<std::vector<double>> mac_data;
-    try { mac_data = readMac(mac_path); }
-    catch (const std::exception& e) {
-        // std::cout << e.what() << std::endl;
-        std::cout << "No validation data" << std::endl;
-        return 0;
-    }
+    // std::vector<std::vector<double>> mac_data;
+    // try { mac_data = readMac(mac_path); }
+    // catch (const std::exception& e) {
+    //     // std::cout << e.what() << std::endl;
+    //     std::cout << "No validation data" << std::endl;
+    //     return 0;
+    // }
 
-    std::vector<std::vector<std::vector<double>>> mem_data;
-    try { mem_data = readMem(mem_path); }
-    catch (const std::exception& e) {
-        // std::cout << e.what() << std::endl;
-        std::cout << "No validation data" << std::endl;
-        return 0;
-    }
+    // std::vector<std::vector<std::vector<double>>> mem_data;
+    // try { mem_data = readMem(mem_path); }
+    // catch (const std::exception& e) {
+    //     // std::cout << e.what() << std::endl;
+    //     std::cout << "No validation data" << std::endl;
+    //     return 0;
+    // }
 
     // assert(mac_data.size() == output_data_MAC.size());
     // assert(mac_data[0].size() == output_data_MAC[0].size());
