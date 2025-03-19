@@ -299,7 +299,7 @@ int main(int argc, char* argv[]) {
             }
             Iout_avg.push_back(row);
         }
-        // std::vector<std::vector<float>> Iout_avg = Iwave[25];
+        // std::vector<std::vector<float>> Iout_avg = Iwave[(voltage_pulse_width/simulation_time_step)/2.];
 
         std::vector<float> Iout_MAC;
         for (int n = 0; n < N; n++) {
@@ -359,7 +359,7 @@ int main(int argc, char* argv[]) {
     outfile = std::ofstream(top_dir/"out_mac.bin", std::ios::binary);
 
     if (!outfile) {
-        std::cout << "Failed to open file: " << top_dir/"MAC.bin" << std::endl;
+        std::cout << "Failed to open file: " << top_dir/"out_mac.bin" << std::endl;
         return 1;
     }
 
@@ -419,23 +419,23 @@ int main(int argc, char* argv[]) {
 
     // float err = 0.;
     // for (int i = 0; i < mac_data[0].size(); i++) {
-    //     std::cout << mac_data[0][i] * 1e-6 - output_data_MAC[0][i] << " ";
+    //     // std::cout << mac_data[0][i] * 1e-6 - output_data_MAC[0][i] << " ";
     //     err += fabs(mac_data[0][i] * 1e-6 - output_data_MAC[0][i]);
     // }
-    // std::cout << std::endl;
+    // // std::cout << std::endl;
     // err = err / mac_data[0].size();
-    // std::cout << "Average error: " << err << std::endl << std::endl;
+    // std::cout << "Average mac error: " << err << std::endl;
 
     // err = 0.;
     // for (int i = 0; i < mem_data[0].size(); i++) {
     //     for (int j = 0; j < mem_data[0][i].size(); j++) {
-    //         std::cout << mem_data[0][i][j] * 1e-6 - output_data[0][i][j] << " ";
+    //         // std::cout << mem_data[0][i][j] * 1e-6 - output_data[0][i][j] << " ";
     //         err += fabs(mem_data[0][i][j] * 1e-6 - output_data[0][i][j]);
     //     }
-    //     std::cout << std::endl;
+    //     // std::cout << std::endl;
     // }
     // err = err / (mem_data[0].size() * mem_data[0][0].size());
-    // std::cout << "Average error: " << err << std::endl << std::endl;
+    // std::cout << "Average individual error: " << err << std::endl;
 
     // for (int i = 0; i < mem_data[0].size(); i++) {
     //     for (int j = 0; j < mem_data[0][i].size(); j++) {

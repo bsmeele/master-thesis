@@ -596,3 +596,9 @@ double JART_VCM_v1b_var::GetResistance(double V_applied) {
     if (fabs(V_applied) < memristor_get_resistance_voltage_threshold) { return Rdisc + Rplug + RTiOx + R0; }
     else { return V_applied / ApplyVoltage(V_applied, 0); }
 }
+
+void JART_VCM_v1b_var::SetWeight(bool weight) {
+    if (weight) { Nreal = Ndiscmax; }
+    else { Nreal = Ndiscmin; }
+    Treal = T0;
+}

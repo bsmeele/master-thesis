@@ -107,6 +107,7 @@ class JART_VCM_v1b_var {
         }
         double ApplyVoltage(double V_applied, double dt);
         double GetResistance(double V_applied);
+        void SetWeight(bool weight);
 };
 
 #endif  // JART_VCM_v1b_var_H_
