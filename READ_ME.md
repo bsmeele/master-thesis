@@ -69,3 +69,7 @@ Some additional notes on `RRAN_validation.cpp`:
 - `RRAM_validation.bat` is an example script to apply this function to multiple folders
 
 Various simulation related settings can be altered in `simulation_settings.h`
+
+Compile command
+
+- g++ RRAM_validation.cpp crossbar_model/linear_crossbar_solver.cpp nonlinear_crossbar_solver.cpp memristor_model/JART_VCM_v1b_var.cpp crossbar_simulator.cpp -o black_box.out
