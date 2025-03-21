@@ -3,8 +3,8 @@
 
 #include "memristor_model/JART_VCM_v1b_var.h"
 
-#include </shares/bulk/earapidis/eigen/eigen/Eigen/Dense>
-#include </shares/bulk/earapidis/eigen/eigen/Eigen/Sparse>
+#include </home/earapidis/dev/eigen/Eigen/Dense>
+#include </home/earapidis/dev/eigen/Eigen/Sparse>
 
 #include <vector>
 

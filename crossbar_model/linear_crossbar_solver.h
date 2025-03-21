@@ -1,8 +1,8 @@
 #ifndef LINEAR_CROSSBAR_SOLVER_H_
 #define LINEAR_CROSSBAR_SOLVER_H_
 
-#include </shares/bulk/earapidis/eigen/eigen/Eigen/Dense>
-#include </shares/bulk/earapidis/eigen/eigen/Eigen/Sparse>
+#include </home/earapidis/dev/eigen/Eigen/Dense>
+#include </home/earapidis/dev/eigen/Eigen/Sparse>
 #include <vector>
 
 Eigen::VectorXf SolveCam(

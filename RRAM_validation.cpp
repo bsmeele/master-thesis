@@ -3,8 +3,8 @@
 #include "crossbar_simulator.h"
 #include "simulation_settings.h"
 
-#include </shares/bulk/earapidis/eigen/eigen/Eigen/Dense>
-#include </shares/bulk/earapidis/eigen/eigen/Eigen/Sparse>
+#include </home/earapidis/dev/eigen/Eigen/Dense>
+#include </home/earapidis/dev/eigen/Eigen/Sparse>
 
 #include <iostream>
 #include <chrono>
