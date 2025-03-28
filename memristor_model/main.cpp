@@ -52,7 +52,7 @@ int main() {
     double V = Vwave[0][0];
     double t = Vwave[0][1];
 
-    outfile << "t V I Nreal Treal Vschottky Vdiscplugserial Rschottky Rdisc Rplug Rseries Rtotal rvar lvar" << std::endl;
+    outfile << "t V I Nreal Treal Vschottky Vdiscplugserial Rschottky Rdisc Rplug Rseries Rtotal" << std::endl;
 
     long long total_time = 0;
 
@@ -75,7 +75,6 @@ int main() {
             << " " << (V - (memristor.Rdisc + memristor.Rplug + memristor.Rseries) * I) << " " << (memristor.Rdisc + memristor.Rplug + memristor.Rseries) * I
             << " " << (V - (memristor.Rdisc + memristor.Rplug + memristor.Rseries) * I)/I << " " << memristor.Rdisc << " " << memristor.Rplug << " " << memristor.Rseries
             << " " << V/I
-            << " " << memristor.rvar << " " << memristor.lvar
             << std::endl;
             V += dv;
             t += dt;

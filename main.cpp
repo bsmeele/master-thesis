@@ -27,19 +27,44 @@ int main(int argc, char* argv[]) {
 
     CrossbarSimulator crossbar = CrossbarSimulator(M, N);
 
-    for (int i = 0; i < runs; i++) {
+    crossbar.SetCrossbarParameters(3, INFINITY, INFINITY, 5, 3, 2);
+    
+    crossbar.UpdatePrecomputeG_ABCD();
+
+    for (int it = 0; it < runs; it++) {
+        std::vector<std::vector<bool>> weights(N, std::vector<bool>(M));
+        for (int i = 0; i < N; ++i) {
+            for (int j = 0; j < M; ++j) {
+                weights[i][j] = rand() % 2;  // rand() % 2 gives either 0 (false) or 1 (true)
+            }
+        }
+        crossbar.SetRRAM(weights);
+
+        if (print) {
+            std::cout << "Weights:" << std::endl;
+            for (int i = 0; i < N; ++i) {
+                for (int j = 0; j < M; ++j) {
+                    std::cout << weights[i][j] << " ";
+                }
+                std::cout << std::endl;
+            }
+            std::cout << std::endl;
+        }
+
         float Vdd = 1.;
         Eigen::VectorXf Vappwl1 = Eigen::VectorXf::Random(M);
         Vappwl1 = (Vappwl1.array() > 0.5).select(Eigen::VectorXf::Constant(M, Vdd), Eigen::VectorXf::Zero(M));
 
         Eigen::VectorXf Vappbl2 = Eigen::VectorXf::Random(M);
-        Vappwl1 = (Vappbl2.array() > 0.5).select(Eigen::VectorXf::Constant(M, Vdd), Eigen::VectorXf::Zero(M));
+        Vappbl2 = (Vappbl2.array() > 0.5).select(Eigen::VectorXf::Constant(M, Vdd), Eigen::VectorXf::Zero(M));
+        // Eigen::VectorXf Vappbl2 = Eigen::VectorXf::Zero(M);
 
         Eigen::VectorXf Vappwl2 = Eigen::VectorXf::Zero(M);
         Eigen::VectorXf Vappbl1 = Eigen::VectorXf::Zero(M);
 
         if (print) {
             std::cout << "Vappwl1:\n" << Vappwl1 << std::endl << std::endl;
+            std::cout << "Vappbl2:\n" << Vappbl2 << std::endl << std::endl;
         }
 
         Eigen::VectorXf V = Eigen::VectorXf::Zero(2*M*N);
@@ -73,6 +98,16 @@ int main(int argc, char* argv[]) {
         total_time += execution_time;
 
         if (print) {
+            // std::cout << "Resistances:" << std::endl;
+            // for (int i = 0; i < M; i++) {
+            //     for (int j = 0; j < N; j++) {
+            //         float v = Vout(i*N + j) - Vout(i*N + j + M*N);
+            //         std::cout << crossbar.RRAM[i][j].GetResistance(v) << " ";
+            //     }
+            //     std::cout << std::endl;
+            // }
+            // std::cout << std::endl;
+
             std::cout << "Iout:" << std::endl;
             for (int j = 0; j < N; j++) {
                 std::cout << Iout[j] << std::endl;

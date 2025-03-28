@@ -375,9 +375,9 @@ int main(int argc, char* argv[]) {
 
     // for (int i = 0; i < output_data_MAC.size(); i++) {
     //     for (int j = 0; j < output_data_MAC[i].size(); j++) {
-    //         outfile << output_data_MAC[i][j] << " ";
+    //         std::cout << output_data_MAC[i][j] << " ";
     //     }
-    //     outfile << std::endl;
+    //     std::cout << std::endl;
     // }
 
     outfile.close();
@@ -422,7 +422,7 @@ int main(int argc, char* argv[]) {
     //     // std::cout << mac_data[0][i] * 1e-6 - output_data_MAC[0][i] << " ";
     //     err += fabs(mac_data[0][i] * 1e-6 - output_data_MAC[0][i]);
     // }
-    // // std::cout << std::endl;
+    // std::cout << std::endl;
     // err = err / mac_data[0].size();
     // std::cout << "Average mac error: " << err << std::endl;
 

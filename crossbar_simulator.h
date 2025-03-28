@@ -69,6 +69,9 @@ class CrossbarSimulator {
         float dt, std::string method = "fixed-point"
     );
     std::vector<float> CalculateIout(Eigen::VectorXf Vout);
+
+    void SetCrossbarParameters(float Rswl1, float Rswl2, float Rsbl1, float Rsbl2, float Rwl, float Rbl);
+    void UpdatePrecomputeG_ABCD();
 };
 
 #endif  // CROSSBAR_SIMULATOR_H_

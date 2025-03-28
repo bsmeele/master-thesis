@@ -65,13 +65,30 @@ std::vector<std::vector<float>> CrossbarSimulator::ApplyVoltage(
 
 std::vector<float> CrossbarSimulator::CalculateIout(Eigen::VectorXf Vout) {
     std::vector<float> Iout;
-    for (int i = 0; i < M; i++) {
-        float Ioutj;
-        for (int j = 0; j < N; j++) {
+    for (int j = 0; j < N; j++) {
+        float Ioutj = 0.;
+        for (int i = 0; i < M; i++) {
             float v = Vout(i*N + j) - Vout(i*N + j + M*N);
-            Ioutj += v / RRAM[i][j].GetResistance(v);
+            Ioutj += RRAM[i][j].ApplyVoltage(v, 0);
+            // Ioutj += v / RRAM[i][j].GetResistance(v);
         }
         Iout.push_back(Ioutj);
     }
     return Iout;
+}
+
+void CrossbarSimulator::SetCrossbarParameters(float Rswl1, float Rswl2, float Rsbl1, float Rsbl2, float Rwl, float Rbl) {
+    this->Rswl1 = Rswl1;
+    this->Rswl2 = Rswl2;
+    this->Rsbl1 = Rsbl1;
+    this->Rsbl2 = Rsbl2;
+    
+    this->Rwl = Rwl;
+    this->Rbl = Rbl;
+    
+    UpdatePrecomputeG_ABCD();
+}
+
+void CrossbarSimulator::UpdatePrecomputeG_ABCD() {
+    partial_G_ABCD = PartiallyPrecomputeG_ABCD(M, N, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl);
 }

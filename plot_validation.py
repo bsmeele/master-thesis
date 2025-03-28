@@ -34,6 +34,7 @@ def main():
     dir_pattern = r"row_\d+-\d+_col_\d+-\d+"
 
     mac_err = []
+    mac_err_reg = []
     mem_err = np.zeros((32, 32))
     mem_err_reg = np.zeros((32, 32))
     lrs_err = np.zeros((32, 32))
@@ -60,8 +61,9 @@ def main():
 
             for batch in range(len(mac_data)):
                 for col in range(len(mac_data[batch])):
-                    mac_err.append(mac_data[batch][col]*1e-6 - mac_data_out[batch][col])
-                    # mac_err.append(abs(mac_data[batch][col]*1e-6 - mac_data_out[batch][col]))
+                    # mac_err.append(mac_data[batch][col]*1e-6 - mac_data_out[batch][col])
+                    mac_err_reg.append(abs(mac_data[batch][col]*1e-6 - mac_data_out[batch][col]) / (mac_data[batch][col]*1e-6))
+                    mac_err.append(abs(mac_data[batch][col]*1e-6 - mac_data_out[batch][col]))
             
             for batch in range(len(mem_data)):
                 for row in range(len(mem_data[batch])):
@@ -94,18 +96,30 @@ def main():
             hrs_err_reg[row][col] = hrs_err_reg[row][col] / hrs_cnt[row][col]
 
 
-    counts, bins = np.histogram(mac_err, bins='auto')
+    counts, bins = np.histogram(mac_err_reg, bins='auto')
+    # counts, bins = np.histogram(mac_err, bins='auto')   
+
+    max_bin_index = np.argmax(counts)
+
+    # Get the edges of the bin with the highest count
+    bin_with_highest_count = (bins[max_bin_index], bins[max_bin_index + 1])
+
+    # Get the count of entries in the bin with the highest count
+    max_count = counts[max_bin_index]
+
+    print(f"Bin with the highest count: {bin_with_highest_count}")
+    print(f"Count of entries in this bin: {max_count}")
+    
     plt.hist(bins[:-1], bins, weights=counts)
-    plt.xlabel('Error (uA)')
+    plt.xlabel('Error (A)')
     plt.ylabel('Count')
-    plt.title('Histogram of error')
-    plt.show()
+    plt.title('Histogram of the error')
 
     # plt.figure(figsize=(10, 7))
 
     # plt.subplot(2, 2, 1)
     # plt.imshow(mem_err, cmap='hot', interpolation='nearest')
-    # plt.colorbar(label='Error magnitude')
+    # plt.colorbar(label='Error magnitude (A)')
     # plt.title('Crossbar Error Map')
     # plt.xlabel('Crossbar Column')
     # plt.ylabel('Crossbar Row')
@@ -134,7 +148,7 @@ def main():
     # plt.ylabel('Crossbar Row')
     
     # plt.tight_layout()
-    # plt.show()
+    plt.show()
 
 
 if __name__ == "__main__":
