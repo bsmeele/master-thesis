@@ -33,16 +33,5 @@ echo Start time: %time%
 :: Print the end time (optional)
 echo End time: %time%
 
-:: Calculate the elapsed time in seconds
-set /a elapsed_time=%end_time% - %start_time%
-
-:: Handle case where the end time is earlier than the start time (overnight case)
-if %elapsed_time% lss 0 (
-    set /a elapsed_time+=86400  :: Add 24 hours worth of seconds (86400 seconds in a day)
-)
-
-:: Print the elapsed time in seconds
-echo Elapsed time: %elapsed_time% seconds
-
 :: Pause the script to see results before the window closes
 pause

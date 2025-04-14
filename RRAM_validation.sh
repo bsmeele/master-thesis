@@ -23,14 +23,3 @@ end_time=$(date +%s)
 
 # Print the end time
 echo "End time: $(date)"
-
-# Calculate the elapsed time in seconds
-elapsed_time=$((end_time - start_time))
-
-# Handle case where the end time is earlier than the start time (overnight case)
-if [ $elapsed_time -lt 0 ]; then
-    elapsed_time=$((elapsed_time + 86400))  # Add 24 hours worth of seconds (86400 seconds in a day)
-fi
-
-# Print the elapsed time in seconds
-echo "Elapsed time: $elapsed_time seconds"

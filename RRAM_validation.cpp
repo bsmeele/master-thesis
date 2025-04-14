@@ -382,21 +382,21 @@ int main(int argc, char* argv[]) {
 
     outfile.close();
     
-    // std::vector<std::vector<double>> mac_data;
-    // try { mac_data = readMac(mac_path); }
-    // catch (const std::exception& e) {
-    //     // std::cout << e.what() << std::endl;
-    //     std::cout << "No validation data" << std::endl;
-    //     return 0;
-    // }
+    std::vector<std::vector<double>> mac_data;
+    try { mac_data = readMac(mac_path); }
+    catch (const std::exception& e) {
+        // std::cout << e.what() << std::endl;
+        std::cout << "No validation data" << std::endl;
+        return 0;
+    }
 
-    // std::vector<std::vector<std::vector<double>>> mem_data;
-    // try { mem_data = readMem(mem_path); }
-    // catch (const std::exception& e) {
-    //     // std::cout << e.what() << std::endl;
-    //     std::cout << "No validation data" << std::endl;
-    //     return 0;
-    // }
+    std::vector<std::vector<std::vector<double>>> mem_data;
+    try { mem_data = readMem(mem_path); }
+    catch (const std::exception& e) {
+        // std::cout << e.what() << std::endl;
+        std::cout << "No validation data" << std::endl;
+        return 0;
+    }
 
     // assert(mac_data.size() == output_data_MAC.size());
     // assert(mac_data[0].size() == output_data_MAC[0].size());
@@ -417,25 +417,25 @@ int main(int argc, char* argv[]) {
     // }
     // std::cout << std::endl;
 
-    // float err = 0.;
-    // for (int i = 0; i < mac_data[0].size(); i++) {
-    //     // std::cout << mac_data[0][i] * 1e-6 - output_data_MAC[0][i] << " ";
-    //     err += fabs(mac_data[0][i] * 1e-6 - output_data_MAC[0][i]);
-    // }
+    float err = 0.;
+    for (int i = 0; i < mac_data[0].size(); i++) {
+        // std::cout << mac_data[0][i] * 1e-6 - output_data_MAC[0][i] << " ";
+        err += fabs(mac_data[0][i] * 1e-6 - output_data_MAC[0][i]);
+    }
     // std::cout << std::endl;
-    // err = err / mac_data[0].size();
-    // std::cout << "Average mac error: " << err << std::endl;
+    err = err / mac_data[0].size();
+    std::cout << "Average mac error: " << err << std::endl;
 
-    // err = 0.;
-    // for (int i = 0; i < mem_data[0].size(); i++) {
-    //     for (int j = 0; j < mem_data[0][i].size(); j++) {
-    //         // std::cout << mem_data[0][i][j] * 1e-6 - output_data[0][i][j] << " ";
-    //         err += fabs(mem_data[0][i][j] * 1e-6 - output_data[0][i][j]);
-    //     }
-    //     // std::cout << std::endl;
-    // }
-    // err = err / (mem_data[0].size() * mem_data[0][0].size());
-    // std::cout << "Average individual error: " << err << std::endl;
+    err = 0.;
+    for (int i = 0; i < mem_data[0].size(); i++) {
+        for (int j = 0; j < mem_data[0][i].size(); j++) {
+            // std::cout << mem_data[0][i][j] * 1e-6 - output_data[0][i][j] << " ";
+            err += fabs(mem_data[0][i][j] * 1e-6 - output_data[0][i][j]);
+        }
+        // std::cout << std::endl;
+    }
+    err = err / (mem_data[0].size() * mem_data[0][0].size());
+    std::cout << "Average individual error: " << err << std::endl;
 
     // for (int i = 0; i < mem_data[0].size(); i++) {
     //     for (int j = 0; j < mem_data[0][i].size(); j++) {

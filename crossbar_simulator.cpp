@@ -70,7 +70,6 @@ std::vector<float> CrossbarSimulator::CalculateIout(Eigen::VectorXf Vout) {
         for (int i = 0; i < M; i++) {
             float v = Vout(i*N + j) - Vout(i*N + j + M*N);
             Ioutj += RRAM[i][j].ApplyVoltage(v, 0);
-            // Ioutj += v / RRAM[i][j].GetResistance(v);
         }
         Iout.push_back(Ioutj);
     }

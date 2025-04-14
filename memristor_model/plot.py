@@ -2,11 +2,11 @@ import matplotlib.pyplot as plt
 import csv
 
 def main():
-    # file_path = 'out_files/out.txt'
-    file_path = 'out.txt'
-    # file_path = 'out_16x16_bottom_left.txt'
-    # file_path = 'out_16x16_top_right.txt'
-    # file_path = 'out_16x16_top_right_access_transistors.txt'
+    # file_path = 'out_files/out.out'
+    file_path = 'out.out'
+    # file_path = 'out_16x16_bottom_left.out'
+    # file_path = 'out_16x16_top_right.out'
+    # file_path = 'out_16x16_top_right_access_transistors.out'
     file_path4 = 'out_files/all-signals-no-var.csv'
 
     t = []  # Time
@@ -446,6 +446,19 @@ def main():
     plt.legend()
     plt.grid(True)
 
+    # plt.subplot(2, 2, 3)
+    # plt.plot(t, I, '-', markersize=2, label='I', color='blue')
+    # plt.legend()
+    # plt.grid(True)
+
+    # plt.subplot(2, 2, 4)
+    # # plt.plot(V_schottky, I_abs, '-', markersize=2, label='C++', color='blue')
+    # plt.plot(t, V_schottky, '-', markersize=2, label='V', color='blue')
+    # # plt.yscale('log')
+    # plt.ylim(-0.1, 0.1)
+    # plt.legend()
+    # plt.grid(True)
+
     # plt.subplot(2, 2, 4)
     # plt.plot(t_dif, I_dif_reg, '-')
     # plt.yscale('log')
@@ -457,17 +470,17 @@ def main():
     # plt.grid(True)
 
     # plt.subplot(2, 2, 4)
-    # # plt.plot(t, R_disc, '-', label="c++", color='blue')
+    # plt.plot(t, R_disc, '-', label="R_disc", color='blue')
     # # plt.plot(c_t_Rdisc, c_Rdisc, '-', label="Cadence", color='orange')
-    # # plt.plot(t, R_plug, '-', label="c++", color='blue')
+    # plt.plot(t, R_plug, '-', label="R_plug", color='orange')
     # # plt.plot(c_t_Rplug, c_Rplug, '-', label="Cadence", color='orange')
-    # # plt.plot(t, R_series, '-', label="c++", color='blue')
+    # plt.plot(t, R_series, '-', label="R_series", color='green')
     # # plt.plot(c_t_Rline, c_Rseries, '-', label="Cadence", color='orange')
-    # plt.plot(t, Rtheff, '-', label="c++", color='blue')
-    # plt.plot(c_t_Rtheff, c_Rtheff, '-', label="Cadence", color='orange')
-    # plt.yscale('log')
+    # plt.plot(t, R_schottky, '-', label="R_schottky", color='yellow')
+    # plt.plot(t, R_total, '-', label="R_total", color='purple')
+    # # plt.yscale('log')
     # plt.xlim(0, 6)
-    # # plt.ylim(0, 1e6)
+    # plt.ylim(5e4, 8e4)
     # plt.title('Resistance components')
     # plt.xlabel('Time (s)')
     # plt.ylabel('Resistance (Ohm)')

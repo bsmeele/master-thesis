@@ -51,11 +51,6 @@ class CrossbarSimulator {
     }
     
     void SetRRAM(std::vector<std::vector<bool>> weights);
-    // Eigen::VectorXf LinearSolve(
-    //     Eigen::VectorXf Vguess,
-    //     const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,
-    //     const Eigen::VectorXf& Vappbl1, const Eigen::VectorXf& Vappbl2
-    // );  // Would need some assumptions to be able to make the G matrix
     Eigen::VectorXf NonlinearSolve(
         Eigen::VectorXf Vguess,
         const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,

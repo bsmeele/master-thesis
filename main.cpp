@@ -93,8 +93,8 @@ int main(int argc, char* argv[]) {
                 }
         }
 
-        auto execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-        std::cout << "Execution time: " << execution_time << " (ms)" << std::endl;
+        auto execution_time = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
+        std::cout << "Execution time: " << execution_time << " (us)" << std::endl;
         total_time += execution_time;
 
         if (print) {
@@ -117,14 +117,14 @@ int main(int argc, char* argv[]) {
     }
     
     if (runs > 1) {
-        std::cout << "Average execution time: " << total_time/runs << " ms" << std::endl;
+        std::cout << "Average execution time: " << total_time/runs << " us" << std::endl;
         // std::cout << "Average norm: " << total_norm/runs << std::endl;
         // std::cout << "Average iterations: " << (float) total_it/runs << std::endl;
     }
 
 
 
-    // std::ofstream outfile("out.txt");
+    // std::ofstream outfile("out.out");
 
     // if (!outfile) {
     //     std::cout << "No out file" << std::endl;

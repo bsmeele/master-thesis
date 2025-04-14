@@ -5,5 +5,8 @@ RRAM_validation_data/
 weights_inputs/
 data/
 
+memristor_model/img/
+memristor_mode/out_files/
+
 *.exe
 *.out

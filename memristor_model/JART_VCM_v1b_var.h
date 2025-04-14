@@ -30,9 +30,9 @@ class JART_VCM_v1b_var {
         double un = 4e-6;             // from [1e-6:1e-5], electron mobility [m^2/Vs]
         double Ndiscmax = 20;         // from [0.001:1100], maximum oxygen vacancy concentration in the disc [10^26/m^3]
         // double Ndiscmin = 0.008;      // from [0.0001:100], minimum oxygen vacancy concentration in the disc [10^26/m^3]
-        // double Ninit = 0.008;         // from [0.0001:1000], initial oxygen vacancy concentration in the disc [10^26/m^3]
+        double Ninit = 0.008;         // from [0.0001:1000], initial oxygen vacancy concentration in the disc [10^26/m^3]
         double Ndiscmin = 0.0001;      // from [0.0001:100], minimum oxygen vacancy concentration in the disc [10^26/m^3]
-        double Ninit = 0.0001;         // from [0.0001:1000], initial oxygen vacancy concentration in the disc [10^26/m^3]
+        // double Ninit = 0.0001;         // from [0.0001:1000], initial oxygen vacancy concentration in the disc [10^26/m^3]
         double Nplug = 20;            // from [0.001:100], oxygen vacancy concentration in the plug [10^26/m^3]
         double a = 0.25e-9;           // from [0.1e-9:1e-9], ion hopping distance [m]
         double nyo = 2e13;            // from [1e10:1e14], attempt frequency [Hz]
@@ -58,19 +58,19 @@ class JART_VCM_v1b_var {
         // ----- Other internal variables -----
         int trig;         // Used to signify certain voltage crossings and limit the state variable
         double Ninitreal; // Not sure what this does, it is set to Ninit on startup and never changed again
-        double rvar;      // radius of the fillament used in calculations, updated with the variability model
-        double rold;      // radius of the fillament, only used in the variability model to update rvar
-        double lvar;      // length of the disc region used in calculations, updated with the variability model
-        double lold;      // length of the disc region, only used in the variability model to update lvar
-        double Nold;      // oxygen vacancy of the disc region, only used in the variability model
-        double Treal;     // homogeneous filament temperature [K]
-        double A;         // cross section of the filament area
-        double Rdisc;     // resistance of the disc region
-        double Rplug;     // resistance of the plug region
-        double Rseries;   // resistance of the series section
-        double Rtheff;    // thermal resistance
-        double V_prev;    // previous applied voltage, used to check for voltage crossings
-        double V_schottky_prev;
+        double rvar;      // Radius of the fillament used in calculations, updated with the variability model
+        double rold;      // Radius of the fillament, only used in the variability model to update rvar
+        double lvar;      // Length of the disc region used in calculations, updated with the variability model
+        double lold;      // Length of the disc region, only used in the variability model to update lvar
+        double Nold;      // Oxygen vacancy of the disc region, only used in the variability model
+        double Treal;     // Homogeneous filament temperature [K]
+        double A;         // Cross section of the filament area
+        double Rdisc;     // Resistance of the disc region
+        double Rplug;     // Resistance of the plug region
+        double Rseries;   // Resistance of the series section
+        double Rtheff;    // Thermal resistance
+        double V_prev;    // |revious applied voltage, used to check for voltage crossings
+        double V_schottky_prev;  // Schottky voltage calculated during the previous iteration
 
         double Nreal; // oxygen vacancy concentration of the disc region [nm]
 

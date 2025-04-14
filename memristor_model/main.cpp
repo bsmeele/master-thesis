@@ -19,7 +19,7 @@ int main() {
     // Simulation time of 8 seconds
     // Maximum step size of 3 ms
 
-    std::ofstream outfile("out.txt");
+    std::ofstream outfile("out.out");
 
     if (!outfile) {
         std::cout << "No out file" << std::endl;

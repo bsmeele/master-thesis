@@ -111,9 +111,9 @@ def main():
     print(f"Count of entries in this bin: {max_count}")
     
     plt.hist(bins[:-1], bins, weights=counts)
-    plt.xlabel('Error (A)')
+    plt.xlabel('RElative error')
     plt.ylabel('Count')
-    plt.title('Histogram of the error')
+    plt.title('Histogram of the relative error')
 
     # plt.figure(figsize=(10, 7))
 

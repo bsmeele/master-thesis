@@ -35,24 +35,12 @@ Eigen::VectorXf SolveCam(
     for (int i = 0; i < M; i++) {
         for (int j = 0; j < N; j++) {
             G_ABCD.coeffRef(i*N + j, i*N + j) += G(i, j);
-            // if (j == 0) {
-            //     G_ABCD.insert(i*N + j, i*N + j) = Gswl1 + G(i, j) + Gwl;
-            //     G_ABCD.insert(i*N + j, i*N + j+1) = -Gwl;
-            // } else if (j == N-1) {
-            //     G_ABCD.insert(i*N + j, i*N + j) = Gswl2 + G(i, j) + Gwl;
-            //     G_ABCD.insert(i*N + j, i*N + j-1) = -Gwl;
-            // } else {
-            //     G_ABCD.insert(i*N + j, i*N+j) = G(i, j) + 2*Gwl;
-            //     G_ABCD.insert(i*N + j, i*N + j-1) = -Gwl;
-            //     G_ABCD.insert(i*N + j, i*N + j+1) = -Gwl;
-            // }
         }
     }
 
     // Submatrix B
     for (int i = 0; i < M; i++) {
         for (int j = 0; j < N; j++) {
-            // G_ABCD.insert(i*N + j, i*N + j + M*N) = -G(i, j);
             G_ABCD.coeffRef(i*N + j, i*N + j + M*N) = -G(i, j);
         }
     }
@@ -60,8 +48,6 @@ Eigen::VectorXf SolveCam(
     // Submatrix C
     for (int i = 0; i < M; i++) {
         for (int j = 0; j < N; j++) {
-            // G_ABCD.insert(i*N + j + M*N, i*N + j) = G(i, j);
-            // G_ABCD.coeffRef(i*N + j + M*N, i*N + j) += G(i, j);
             G_ABCD.coeffRef(i*N + j + M*N, i*N + j) = -G(i, j);
         }
     }
@@ -69,19 +55,7 @@ Eigen::VectorXf SolveCam(
     // Submatrix D
     for (int i = 0; i < M; i++) {
         for (int j = 0; j < N; j++) {
-            // G_ABCD.coeffRef(i*N + j + M*N, i*N + j + M*N) += -G(i, j);
             G_ABCD.coeffRef(i*N + j + M*N, i*N + j + M*N) += G(i, j);
-            // if (i == 0) {
-            //     G_ABCD.insert(i*N + j + M*N, i*N + j + M*N) = -Gsbl1 + -G(i, j) + -Gbl;
-            //     G_ABCD.insert(i*N + j + M*N, (i+1)*N + j + M*N) = Gbl;
-            // } else if (i == M-1) {
-            //     G_ABCD.insert(i*N + j + M*N, i*N + j + M*N) = -Gsbl2 + -G(i, j) + -Gbl;
-            //     G_ABCD.insert(i*N + j + M*N, (i-1)*N + j + M*N) = Gbl;
-            // } else {
-            //     G_ABCD.insert(i*N + j + M*N, i*N + j + M*N) = -G(i, j) + -2*Gbl;
-            //     G_ABCD.insert(i*N + j + M*N, (i-1)*N + j + M*N) = Gbl;
-            //     G_ABCD.insert(i*N + j + M*N, (i+1)*N + j + M*N) = Gbl;
-            // }
         }
     }
 
@@ -93,12 +67,7 @@ Eigen::VectorXf SolveCam(
         std::cout << "E:\n" << E << std::endl << std::endl;
     }
 
-    // Eigen::SparseLU<Eigen::SparseMatrix<float>> solver;
-    // Eigen::ConjugateGradient<Eigen::SparseMatrix<float>> solver;
-    // Eigen::BiCGSTAB<Eigen::SparseMatrix<float>> solver;
-
     solver.compute(G_ABCD);
-    // Eigen::VectorXf V = solver.solve(E);
     Eigen::VectorXf V = solver.solveWithGuess(E, Vguess);
 
     if (print) {
@@ -106,18 +75,6 @@ Eigen::VectorXf SolveCam(
         std::cout << "Vb:\n" << V.tail(M*N) << std::endl << std::endl;
         std::cout << "V:\n" << V.head(M*N) - V.tail(M*N) << std::endl << std::endl;
     }
-
-    // Calculate Iout
-    // std::vector<float> Iout;
-    // for (int j = 0; j < N; j++) {
-    //     float Ioutj = 0;
-    //     for (int i = 0; i < M; i++) {
-    //         Ioutj += (V(i*N + j) - V(i*N + j + M*N)) * G(i,j);
-    //     }
-    //     Iout.push_back(Ioutj);
-    // }
-
-    // return Iout;
 
     return V;
 }
@@ -170,19 +127,12 @@ Eigen::SparseMatrix<float> PartiallyPrecomputeG_ABCD(
     for (int i = 0; i < M; i++) {
         for (int j = 0; j < N; j++) {
             if (i == 0) {
-                // G_ABCD.insert(i*N + j + M*N, i*N + j + M*N) = -Gsbl1 + -Gbl;
-                // G_ABCD.insert(i*N + j + M*N, (i+1)*N + j + M*N) = Gbl;
                 G_ABCD.insert(i*N + j + M*N, i*N + j + M*N) = Gsbl1 + Gbl;
                 G_ABCD.insert(i*N + j + M*N, (i+1)*N + j + M*N) = -Gbl;
             } else if (i == M-1) {
-                // G_ABCD.insert(i*N + j + M*N, i*N + j + M*N) = -Gsbl2 + -Gbl;
-                // G_ABCD.insert(i*N + j + M*N, (i-1)*N + j + M*N) = Gbl;
                 G_ABCD.insert(i*N + j + M*N, i*N + j + M*N) = Gsbl2 + Gbl;
                 G_ABCD.insert(i*N + j + M*N, (i-1)*N + j + M*N) = -Gbl;
             } else {
-                // G_ABCD.insert(i*N + j + M*N, i*N + j + M*N) = -2*Gbl;
-                // G_ABCD.insert(i*N + j + M*N, (i-1)*N + j + M*N) = Gbl;
-                // G_ABCD.insert(i*N + j + M*N, (i+1)*N + j + M*N) = Gbl;
                 G_ABCD.insert(i*N + j + M*N, i*N + j + M*N) = 2*Gbl;
                 G_ABCD.insert(i*N + j + M*N, (i-1)*N + j + M*N) = -Gbl;
                 G_ABCD.insert(i*N + j + M*N, (i+1)*N + j + M*N) = -Gbl;
@@ -224,10 +174,8 @@ Eigen::VectorXf ComputeE(
     for (int i = 0; i < M; i++) {
         for (int j = 0; j < N; j++) {
             if (i == 0) {
-                // E.insert(i*N + j + M*N) = -Vappbl1(j) * Gsbl1;
                 E(i*N + j + M*N) = Vappbl1(j) * Gsbl1;
             } else if (i == M-1) {
-                // E.insert(i*N + j + M*N) = -Vappbl2(j) * Gsbl2;
                 E(i*N + j + M*N) = Vappbl2(j) * Gsbl2;
             }
         }
