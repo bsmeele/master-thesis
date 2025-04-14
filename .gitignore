@@ -4,6 +4,7 @@ eigen/
 RRAM_validation_data/
 weights_inputs/
 data/
+old/
 
 memristor_model/img/
 memristor_mode/out_files/
