@@ -1,6 +1,8 @@
 #include "nonlinear_crossbar_solver.h"
 #include "crossbar_model/linear_crossbar_solver.h"
 #include "crossbar_simulator.h"
+#include "memristor_model/JART_VCM_v1b_var.h"
+#include "memristor_model/dummy_memristor.h"
 
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
@@ -26,6 +28,8 @@ int main(int argc, char* argv[]) {
     float total_norm = 0;
 
     CrossbarSimulator crossbar = CrossbarSimulator(M, N);
+    crossbar.Initialize<JART_VCM_v1b_var>();
+    // crossbar.Initialize<Dummy>();
 
     crossbar.SetCrossbarParameters(3, INFINITY, INFINITY, 5, 3, 2);
     
@@ -36,6 +40,7 @@ int main(int argc, char* argv[]) {
         for (int i = 0; i < N; ++i) {
             for (int j = 0; j < M; ++j) {
                 weights[i][j] = rand() % 2;  // rand() % 2 gives either 0 (false) or 1 (true)
+                // weights[i][j] = 1;
             }
         }
         crossbar.SetRRAM(weights);
@@ -54,10 +59,11 @@ int main(int argc, char* argv[]) {
         float Vdd = 1.;
         Eigen::VectorXf Vappwl1 = Eigen::VectorXf::Random(M);
         Vappwl1 = (Vappwl1.array() > 0.5).select(Eigen::VectorXf::Constant(M, Vdd), Eigen::VectorXf::Zero(M));
+        // Vappwl1 = Eigen::VectorXf::Constant(M, 0.1);
 
         Eigen::VectorXf Vappbl2 = Eigen::VectorXf::Random(M);
         Vappbl2 = (Vappbl2.array() > 0.5).select(Eigen::VectorXf::Constant(M, Vdd), Eigen::VectorXf::Zero(M));
-        // Eigen::VectorXf Vappbl2 = Eigen::VectorXf::Zero(M);
+        // Vappbl2 = Eigen::VectorXf::Zero(M);
 
         Eigen::VectorXf Vappwl2 = Eigen::VectorXf::Zero(M);
         Eigen::VectorXf Vappbl1 = Eigen::VectorXf::Zero(M);
@@ -98,15 +104,30 @@ int main(int argc, char* argv[]) {
         total_time += execution_time;
 
         if (print) {
-            // std::cout << "Resistances:" << std::endl;
-            // for (int i = 0; i < M; i++) {
-            //     for (int j = 0; j < N; j++) {
-            //         float v = Vout(i*N + j) - Vout(i*N + j + M*N);
-            //         std::cout << crossbar.RRAM[i][j].GetResistance(v) << " ";
-            //     }
-            //     std::cout << std::endl;
-            // }
-            // std::cout << std::endl;
+            std::cout << "Resistances:" << std::endl;
+            for (int i = 0; i < M; i++) {
+                for (int j = 0; j < N; j++) {
+                    float v = Vout(i*N + j) - Vout(i*N + j + M*N);
+                    std::cout << crossbar.RRAM[i][j]->GetResistance(v) << " ";
+                    // std::cout << crossbar.RRAM[i][j].Nreal << " ";
+                }
+                std::cout << std::endl;
+            }
+            std::cout << std::endl;
+
+            // std::cout << "Vout:\n" << Vout << std::endl << std::endl;
+            for (int i = 0; i < 2; i++) {
+                for (int m = 0; m < M; m++) {
+                    for (int n = 0; n < N; n++) {
+                        if (i == 0) {
+                            std::cout << "w_r" << m << "c" << n << ": " << Vout(n + m*N) << std::endl;
+                        } else {
+                            std::cout << "b_r" << m << "c" << n << ": " << Vout(n + m*N + M*N) << std::endl;
+                        }
+                    }
+                }
+            }
+            std::cout << std::endl;
 
             std::cout << "Iout:" << std::endl;
             for (int j = 0; j < N; j++) {

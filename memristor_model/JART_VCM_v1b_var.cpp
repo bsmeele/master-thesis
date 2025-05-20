@@ -261,7 +261,9 @@ double JART_VCM_v1b_var::ApplyVoltage(double V_applied, double dt) {
 // Computes the resistance of the device by calculating the current for some applied voltage
 // To avoid instability, this function returns some default value (based on internal variables) for low voltages
 double JART_VCM_v1b_var::GetResistance(double V_applied) {
-    if (fabs(V_applied) < memristor_get_resistance_voltage_threshold) { return Rdisc + Rplug + RTiOx + R0; }
+    if (fabs(V_applied) < memristor_get_resistance_voltage_threshold) {
+        return Rdisc + Rplug + RTiOx + R0;
+    }
     else { return V_applied / ApplyVoltage(V_applied, 0); }
 }
 

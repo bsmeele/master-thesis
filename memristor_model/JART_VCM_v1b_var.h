@@ -1,6 +1,8 @@
 #ifndef JART_VCM_v1b_var_H_
 #define JART_VCM_v1b_var_H_
 
+#include "memristor.h"
+
 #include <array>
 #include <vector>
 #include <iostream>
@@ -13,7 +15,7 @@ const double P_K = 1.38065e-23;   // Boltzman constant [J/K]
 const double P_EPS0 = 8.6549e-12; // Permittivity of a vacuum [F/m]
 const double P_H = 6.626e-34;     // Planck constant [Js]
 
-class JART_VCM_v1b_var {
+class JART_VCM_v1b_var: public Memristor {
     private:
     public:
         // ----- Pyisical constants do not change! -----
@@ -29,9 +31,9 @@ class JART_VCM_v1b_var {
         double phin = 0.1;            // from [0.1:0.3], energy level difference between the Fermi level in the oxide and the oxide conduction band edge [eV]
         double un = 4e-6;             // from [1e-6:1e-5], electron mobility [m^2/Vs]
         double Ndiscmax = 20;         // from [0.001:1100], maximum oxygen vacancy concentration in the disc [10^26/m^3]
-        // double Ndiscmin = 0.008;      // from [0.0001:100], minimum oxygen vacancy concentration in the disc [10^26/m^3]
+        double Ndiscmin = 0.008;      // from [0.0001:100], minimum oxygen vacancy concentration in the disc [10^26/m^3]
+        // double Ndiscmin = 0.0001;      // from [0.0001:100], minimum oxygen vacancy concentration in the disc [10^26/m^3]
         double Ninit = 0.008;         // from [0.0001:1000], initial oxygen vacancy concentration in the disc [10^26/m^3]
-        double Ndiscmin = 0.0001;      // from [0.0001:100], minimum oxygen vacancy concentration in the disc [10^26/m^3]
         // double Ninit = 0.0001;         // from [0.0001:1000], initial oxygen vacancy concentration in the disc [10^26/m^3]
         double Nplug = 20;            // from [0.001:100], oxygen vacancy concentration in the plug [10^26/m^3]
         double a = 0.25e-9;           // from [0.1e-9:1e-9], ion hopping distance [m]
@@ -107,9 +109,9 @@ class JART_VCM_v1b_var {
 
             tmp = 0;
         }
-        double ApplyVoltage(double V_applied, double dt);
-        double GetResistance(double V_applied);
-        void SetWeight(bool weight);
+        double ApplyVoltage(double V_applied, double dt) override;
+        double GetResistance(double V_applied) override;
+        void SetWeight(bool weight) override;
 };
 
 #endif  // JART_VCM_v1b_var_H_

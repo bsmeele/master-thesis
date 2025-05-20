@@ -20,7 +20,7 @@
 // The method in this function is based on: https://en.wikipedia.org/wiki/Broyden%27s_method
 // The soving method takes an iteration limit of 100, after which the best guess is returned
 Eigen::VectorXf BroydenInvSolve(
-    std::vector<std::vector<JART_VCM_v1b_var>> RRAM,  // Matrix containing the nonlinear deviceds
+    std::vector<std::vector<std::unique_ptr<Memristor>>>& RRAM,  // Matrix containing the nonlinear deviceds
     std::vector<std::vector<bool>> access_transistors,
     Eigen::VectorXf Vguess,  // Initial guess for the nodal voltages. Supplying a zero vector acts as if no guess is given
     Eigen::SparseMatrix<float> G_ABCD,  // A partially precomputed version of the G_ABCD matrix
@@ -42,7 +42,7 @@ Eigen::VectorXf BroydenInvSolve(
         for (int j = 0; j < N; j++) {
             if (access_transistors[i][j]) {
                 float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
-                G(i, j) = (float) 1./RRAM[i][j].GetResistance(v);
+                G(i, j) = (float) 1./RRAM[i][j]->GetResistance(v);
             } else {
                 G(i, j) = 0;
             }
@@ -113,7 +113,7 @@ Eigen::VectorXf BroydenInvSolve(
             for (int j = 0; j < N; j++) {
                 if (access_transistors[i][j]) {
                     float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
-                    G(i, j) = (float) 1./RRAM[i][j].GetResistance(v);
+                    G(i, j) = (float) 1./RRAM[i][j]->GetResistance(v);
                 } else {
                     G(i, j) = 0;
                 }
@@ -142,7 +142,7 @@ Eigen::VectorXf BroydenInvSolve(
 // The method in this function is based on: https://en.wikipedia.org/wiki/Broyden%27s_method
 // The soving method takes an iteration limit of 100, after which the best guess is returned
 Eigen::VectorXf BroydenSolve(
-    std::vector<std::vector<JART_VCM_v1b_var>> RRAM,  // Matrix containing the nonlinear deviceds
+    std::vector<std::vector<std::unique_ptr<Memristor>>>& RRAM,  // Matrix containing the nonlinear deviceds
     std::vector<std::vector<bool>> access_transistors,
     Eigen::VectorXf Vguess,  // Initial guess for the nodal voltages. Supplying a zero vector acts as if no guess is given
     Eigen::SparseMatrix<float> G_ABCD,  // A partially precomputed version of the G_ABCD matrix
@@ -164,7 +164,7 @@ Eigen::VectorXf BroydenSolve(
         for (int j = 0; j < N; j++) {
             if (access_transistors[i][j]) {
                 float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
-                G(i, j) = (float) 1./RRAM[i][j].GetResistance(v);
+                G(i, j) = (float) 1./RRAM[i][j]->GetResistance(v);
             } else {
                 G(i, j) = 0;
             }
@@ -234,7 +234,7 @@ Eigen::VectorXf BroydenSolve(
             for (int j = 0; j < N; j++) {
                 if (access_transistors[i][j]) {
                     float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
-                    G(i, j) = (float) 1./RRAM[i][j].GetResistance(v);
+                    G(i, j) = (float) 1./RRAM[i][j]->GetResistance(v);
                 } else {
                     G(i, j) = 0;
                 }
@@ -261,7 +261,7 @@ Eigen::VectorXf BroydenSolve(
 // The method in this function is based on: https://en.wikipedia.org/wiki/Newton's_method
 // The soving method takes an iteration limit of 100, after which the best guess is returned
 Eigen::VectorXf NewtonRaphsonSolve(
-    std::vector<std::vector<JART_VCM_v1b_var>> RRAM,  // Matrix containing the nonlinear deviceds
+    std::vector<std::vector<std::unique_ptr<Memristor>>>& RRAM,  // Matrix containing the nonlinear deviceds
     std::vector<std::vector<bool>> access_transistors,
     Eigen::VectorXf Vguess,  // Initial guess for the nodal voltages. Supplying a zero vector acts as if no guess is given
     Eigen::SparseMatrix<float> G_ABCD,  // A partially precomputed version of the G_ABCD matrix
@@ -289,7 +289,7 @@ Eigen::VectorXf NewtonRaphsonSolve(
             for (int j = 0; j < N; j++) {
                 if (access_transistors[i][j]) {
                     float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
-                    G(i, j) = (float) 1./RRAM[i][j].GetResistance(v);
+                    G(i, j) = (float) 1./RRAM[i][j]->GetResistance(v);
                 } else {
                     G(i, j) = 0;
                 }
@@ -351,7 +351,7 @@ Eigen::VectorXf NewtonRaphsonSolve(
                 for (int j = 0; j < N; j++) {
                     if (access_transistors[i][j]) {
                         float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
-                        G(i, j) = (float) 1./RRAM[i][j].GetResistance(v);
+                        G(i, j) = (float) 1./RRAM[i][j]->GetResistance(v);
                     } else {
                         G(i, j) = 0;
                     }
@@ -381,7 +381,7 @@ Eigen::VectorXf NewtonRaphsonSolve(
 // The method used in this function is a simple fixed point method
 // The soving method takes an iteration limit of 100, after which the best guess is returned
 Eigen::VectorXf FixedpointSolve(
-    std::vector<std::vector<JART_VCM_v1b_var>> RRAM,  // Matrix containing the nonlinear deviceds
+    std::vector<std::vector<std::unique_ptr<Memristor>>>& RRAM,  // Matrix containing the nonlinear deviceds
     std::vector<std::vector<bool>> access_transistors,  // Matrix containing access transistors. Assumed to be ideal, thus true means on/closed, false means off/open
     Eigen::VectorXf Vguess,  // Initial guess for the nodal voltages. Supplying a zero vector acts as if no guess is given
     Eigen::SparseMatrix<float> G_ABCD,  // A partially precomputed version of the G_ABCD matrix
@@ -409,7 +409,7 @@ Eigen::VectorXf FixedpointSolve(
             for (int j = 0; j < N; j++) {
                 if (access_transistors[i][j]) {
                     float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
-                    G(i, j) = (float) 1./RRAM[i][j].GetResistance(v);
+                    G(i, j) = (float) 1./RRAM[i][j]->GetResistance(v);
                 } else {
                     G(i, j) = 0;
                 }
