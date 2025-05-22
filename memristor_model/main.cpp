@@ -1,5 +1,5 @@
-#include "JART_VCM_v1b_var.h"
 #include "../simulation_settings.h"
+#include "JART_VCM_v1b_var.h"
 
 #include <iostream>
 #include <fstream>
@@ -68,14 +68,13 @@ int main() {
             auto execution_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time).count();
             total_time += execution_time;
 
-            if (fabs(t - 4.5) < 1e-6) { memristor.Nreal = memristor.Ndiscmin; }
-
             if (std::isnan(I)) { return 1; }
             outfile << t << " " << V << " " << I << " " << memristor.Nreal << " " << memristor.Treal
             << " " << (V - (memristor.Rdisc + memristor.Rplug + memristor.Rseries) * I) << " " << (memristor.Rdisc + memristor.Rplug + memristor.Rseries) * I
             << " " << (V - (memristor.Rdisc + memristor.Rplug + memristor.Rseries) * I)/I << " " << memristor.Rdisc << " " << memristor.Rplug << " " << memristor.Rseries
             << " " << V/I
             << std::endl;
+
             V += dv;
             t += dt;
         }
