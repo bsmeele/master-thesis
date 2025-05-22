@@ -87,7 +87,6 @@ class JART_VCM_v1b_var: public Memristor {
         std::array<double, 3> SolveBisection(double V_low, double V_high, double V_applied);
         void MultiSolveBisection(double V_low, double V_high, double V_applied, std::vector<std::array<double, 3>> &roots);
         std::array<double, 3> SolveFixedpoint(double Vguess, double V_applied);
-        std::array<double, 3> SolveBrent(double V_a, double V_b, double V_applied);
 
     // public:
         JART_VCM_v1b_var() {
