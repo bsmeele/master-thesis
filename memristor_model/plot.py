@@ -2,8 +2,8 @@ import matplotlib.pyplot as plt
 import csv
 
 def main():
-    # file_path = 'out_files/out.out'
-    file_path = 'out.out'
+    file_path = 'out_files/out.out'
+    # file_path = 'out.out'
     # file_path = 'out_files/out_16x16_bottom_left.out'
     # file_path = 'out_files/out_16x16_top_right.out'
     # file_path = 'out_files/out_16x16_top_right_access_transistors.out'
@@ -455,7 +455,7 @@ def main():
 
     plt.subplot(2, 2, 3)
     plt.plot(t2, T2, '-', markersize=2, label='C++', color='blue')
-    # plt.plot(c_t_T, c_T, '-', markersize=2, label='Cadence', color='orange')
+    plt.plot(c_t_T, c_T, '-', markersize=2, label='Cadence', color='orange')
     # plt.plot(t_dif, T_dif, '-', markersize=2, label='Error', color='purple')
     # plt.plot(t2, T2, '-', markersize=2, label='Top right', color='blue')
     # plt.plot(t2, T2, '-', markersize=2, label='Bottom left', color='orange')

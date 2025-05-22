@@ -11,3 +11,4 @@ memristor_mode/out_files/
 
 *.exe
 *.out
+*.csv
