@@ -148,7 +148,7 @@ int main(int argc, char* argv[]) {
 
     // Eigen::VectorXf V = Eigen::VectorXf::Zero(2*M*N);
 
-    // outfile << "t V I Nreal Treal Vschottky Vdiscplugserial Rschottky Rdisc Rplug Rseries Rtotal" << std::endl;
+    // // outfile << "t V I Nreal Treal Vschottky Vdiscplugserial Rschottky Rdisc Rplug Rseries Rtotal" << std::endl;
 
     // for (int i = 0; i < M; i++) {
     //     for (int j = 0; j < N; j++) {
@@ -164,15 +164,21 @@ int main(int argc, char* argv[]) {
     // for (int i = 1; i < Vwave.size(); i++) {
     //     double dv = (Vwave[i][0] - Vappwl1(0)) / ((Vwave[i][1] - t) / dt);
     //     while (t < Vwave[i][1]) {
-    //         V = crossbar.NonlinearSolve(V, Vappwl1, Vappwl2, Vappbl1, Vappbl2);
+    //         // V = crossbar.NonlinearSolve(V, Vappwl1, Vappwl2, Vappbl1, Vappbl2);
     //         std::vector<std::vector<float>> I = crossbar.ApplyVoltage(V, Vappwl1, Vappwl2, Vappbl1, Vappbl2, dt);
 
-    //         float v = V(N-1) - V(N-1 + M*N);
-    //         outfile << t << " " << v << " " << I[0][N-1] << " " << crossbar.RRAM[0][N-1].Nreal << " " << crossbar.RRAM[0][N-1].Treal
-    //             << " " << (v - (crossbar.RRAM[0][N-1].Rdisc + crossbar.RRAM[0][N-1].Rplug + crossbar.RRAM[0][N-1].Rseries) * I[0][N-1]) << " " << (crossbar.RRAM[0][N-1].Rdisc + crossbar.RRAM[0][N-1].Rplug + crossbar.RRAM[0][N-1].Rseries) * I[0][N-1]
-    //             << " " << (v - (crossbar.RRAM[0][N-1].Rdisc + crossbar.RRAM[0][N-1].Rplug + crossbar.RRAM[0][N-1].Rseries) * I[0][N-1])/I[0][N-1] << " " << crossbar.RRAM[0][N-1].Rdisc << " " << crossbar.RRAM[0][N-1].Rplug << " " << crossbar.RRAM[0][N-1].Rseries
-    //             << " " << v/I[0][N-1]
-    //             << std::endl;
+    //         outfile << t;
+    //         for (int n = 0; n < N; n++) {
+    //             outfile << " " << crossbar.RRAM[0][n].Nreal;
+    //         }
+    //         outfile << std::endl;
+
+    //         // float v = V(N-1) - V(N-1 + M*N);
+    //         // outfile << t << " " << v << " " << I[0][N-1] << " " << crossbar.RRAM[0][N-1].Nreal << " " << crossbar.RRAM[0][N-1].Treal
+    //         //     << " " << (v - (crossbar.RRAM[0][N-1].Rdisc + crossbar.RRAM[0][N-1].Rplug + crossbar.RRAM[0][N-1].Rseries) * I[0][N-1]) << " " << (crossbar.RRAM[0][N-1].Rdisc + crossbar.RRAM[0][N-1].Rplug + crossbar.RRAM[0][N-1].Rseries) * I[0][N-1]
+    //         //     << " " << (v - (crossbar.RRAM[0][N-1].Rdisc + crossbar.RRAM[0][N-1].Rplug + crossbar.RRAM[0][N-1].Rseries) * I[0][N-1])/I[0][N-1] << " " << crossbar.RRAM[0][N-1].Rdisc << " " << crossbar.RRAM[0][N-1].Rplug << " " << crossbar.RRAM[0][N-1].Rseries
+    //         //     << " " << v/I[0][N-1]
+    //         //     << std::endl;
 
     //         // float v = V((M-1)*N) - V((M-1)*N + M*N);
     //         // outfile << t << " " << v << " " << I[M-1][0] << " " << crossbar.RRAM[M-1][0].Nreal << " " << crossbar.RRAM[M-1][0].Treal
@@ -182,9 +188,9 @@ int main(int argc, char* argv[]) {
     //         //     << std::endl;
 
     //         Vappwl1(0) += dv;
-    //         for (int i = 0; i < N-1; i++) {
-    //             Vappbl2(i) += dv;
-    //         }
+    //         // for (int i = 0; i < N-1; i++) {
+    //         //     Vappbl2(i) += dv;
+    //         // }
     //         t += dt;
     //     }
     // }

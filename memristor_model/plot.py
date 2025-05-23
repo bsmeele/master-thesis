@@ -14,6 +14,9 @@ def main():
     # file_path = 'out_files/out_32x32_top_right.out'
     file_path2 = 'out_files/out_32x32_bottom_left.out'
 
+    # file_path3 = 'out_files/out_32x32_bottom_row.out'
+    file_path3 = 'out_files/out_32x32_top_row.out'
+
     t = []  # Time
     V = []  # Votage
     I = []  # Current
@@ -39,6 +42,9 @@ def main():
     R2_plug = []
     R2_series = []
     R2_total = []
+
+    t3 = []
+    N_row = []
 
     c_t_T = []
     c_T = []
@@ -158,6 +164,13 @@ def main():
 
                 except ValueError:
                     print(f"Skipping invalid line: {line.strip()}")
+
+    with open(file_path3, 'r') as file:
+        for line in file:
+            nums = list(map(float, line.strip().split()))
+            if nums:
+                t3.append(float(nums[0]))
+                N_row.append([float(n) for n in nums[1:]])
 
     with open(file_path4, mode='r', newline='') as file:
         reader = csv.reader(file)
@@ -551,6 +564,14 @@ def main():
     # Adjust layout and display the plots
     plt.tight_layout()
     plt.show()
+
+    # for i in range(len(N_row[0])):
+    #     col = [row[i] for row in N_row]
+    #     plt.plot(t3, col, label=f'Col {i+1}')
+
+    # plt.legend()
+    # plt.grid(True)
+    # plt.show()
 
 
 if __name__ == "__main__":
