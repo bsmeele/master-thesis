@@ -27,7 +27,7 @@ int main(int argc, char* argv[]) {
 
     CrossbarSimulator crossbar = CrossbarSimulator(M, N);
 
-    crossbar.SetCrossbarParameters(3, INFINITY, INFINITY, 5, 3, 2);
+    // crossbar.SetCrossbarParameters(3, INFINITY, INFINITY, 5, 3, 2);
 
     for (int it = 0; it < runs; it++) {
         std::vector<std::vector<bool>> weights(N, std::vector<bool>(M));
@@ -152,7 +152,7 @@ int main(int argc, char* argv[]) {
 
     // for (int i = 0; i < M; i++) {
     //     for (int j = 0; j < N; j++) {
-    //         if (i == 0) {
+    //         if (i == M-1) {
     //             crossbar.access_transistors[i][j] = true;
     //         } else {
     //             crossbar.access_transistors[i][j] = false;
@@ -162,14 +162,14 @@ int main(int argc, char* argv[]) {
     // }
 
     // for (int i = 1; i < Vwave.size(); i++) {
-    //     double dv = (Vwave[i][0] - Vappwl1(0)) / ((Vwave[i][1] - t) / dt);
+    //     double dv = (Vwave[i][0] - Vappwl1(M-1)) / ((Vwave[i][1] - t) / dt);
     //     while (t < Vwave[i][1]) {
     //         // V = crossbar.NonlinearSolve(V, Vappwl1, Vappwl2, Vappbl1, Vappbl2);
     //         std::vector<std::vector<float>> I = crossbar.ApplyVoltage(V, Vappwl1, Vappwl2, Vappbl1, Vappbl2, dt);
 
     //         outfile << t;
     //         for (int n = 0; n < N; n++) {
-    //             outfile << " " << crossbar.RRAM[0][n].Nreal;
+    //             outfile << " " << crossbar.RRAM[M-1][n].Nreal;
     //         }
     //         outfile << std::endl;
 
@@ -187,7 +187,7 @@ int main(int argc, char* argv[]) {
     //         //     << " " << v/I[M-1][0]
     //         //     << std::endl;
 
-    //         Vappwl1(0) += dv;
+    //         Vappwl1(M-1) += dv;
     //         // for (int i = 0; i < N-1; i++) {
     //         //     Vappbl2(i) += dv;
     //         // }
