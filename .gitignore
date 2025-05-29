@@ -2,6 +2,7 @@
 eigen/
 
 RRAM_validation_data/
+RRAM_test_data/
 weights_inputs/
 data/
 old/

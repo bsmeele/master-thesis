@@ -434,7 +434,9 @@ Eigen::VectorXf FixedpointSolve(
             }
 
             if (it >= it_max) {
-                if (print) { std::cout << "Iteration limit reached: " << it << std::endl; }
+                if (non_linear_warn_iteration_limit) {
+                    std::cout << "Non-linear fixed-point iteration limit reached with error " << Fv.norm() << std::endl;
+                }
                 return Vguess;
             }
 
@@ -457,11 +459,12 @@ Eigen::VectorXf FixedpointSolve(
                     std::cout << "Solved in " << it << " iterations" << std::endl;
                 }
             }
+            
+            if (it >= it_max && non_linear_warn_iteration_limit) {
+                std::cout << "Non-linear fixed-point iteration limit reached with error " << Fv.norm() << std::endl;
+            }
 
-            // if (it >= it_max) {
-            //     std::cout << "Iteration limit reached: " << it << std::endl;
-            //     std::cout << "Norm: " << Fv.norm() << std::endl;
-            // }
+            // std::cout << it << " " << Fv.norm() << std::endl;
 
             return Vout;
         }

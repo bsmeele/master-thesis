@@ -146,6 +146,9 @@ std::array<double, 3> JART_VCM_v1b_var::SolveFixedpoint(double V_guess, double V
             return {NAN, NAN, NAN};
         }
         if (it > memristor_fixedpoint_it_max) {
+            if (memristor_fixedpoint_warn_iteration_limit) {
+                std::cout << "Memristor fixed-point iteration limit reached with error: " << Fv << std::endl;
+            }
             return {V_schottky, V_discplugserial, I_schottky};
         }
 
