@@ -34,4 +34,6 @@ const float voltage_pulse_fall_time = 5e-6;  // Time for the voltage pulse to go
 
 const float simulation_time_step = 1e-6;     // Delta time for each simulation step. Note: the memristor model can dynamically reduce this time step temporarilly if it detects large changes (see memristor_dynamic_time_step_N_limit)
 
+const unsigned int simulation_num_threads = 0;
+
 #endif  // SIMULATION_SETTINGS_H_

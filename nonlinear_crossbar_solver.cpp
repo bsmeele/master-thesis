@@ -409,6 +409,7 @@ Eigen::VectorXf FixedpointSolve(
     const float Rswl1, const float Rswl2, const float Rsbl1, const float Rsbl2,  // Resitances of the wordline and bitline voltage sources
     const float Rwl, const float Rbl,  // Wordline and bitline resistances of the crossbar
     Eigen::ConjugateGradient<Eigen::SparseMatrix<float>>& solver,
+    ThreadPool& pool,
     const bool print  // Boolean variable to print some debug information, default false
 ) {
     if (RRAM.size() == 0) { return Eigen::VectorXf(0); }
@@ -416,20 +417,39 @@ Eigen::VectorXf FixedpointSolve(
     int N = RRAM[0].size();
 
     Eigen::MatrixXf G(M, N);
-
     float a = non_linear_fixed_point_a;
 
     int it_max = non_linear_fixed_point_it_max;
     int it = 0;
     while (true) {
         // Determine G
-        for (int i = 0; i < M; i++) {
-            for (int j = 0; j < N; j++) {
-                if (access_transistors[i][j]) {
-                    float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
-                    G(i, j) = (float) 1./RRAM[i][j].GetResistance(v);
-                } else {
-                    G(i, j) = 0;
+        if (simulation_num_threads > 0) {
+            std::vector<std::future<void>> futures;
+            for (int i = 0; i < M; i++) {
+                for (int j = 0; j < N; j++) {
+                    if (access_transistors[i][j]) {
+                        futures.emplace_back(pool.enqueue([&, i, j]() {
+                            float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
+                            G(i, j) = (float) 1./RRAM[i][j].GetResistance(v);
+                        }));
+                    } else {
+                        G(i, j) = 0;
+                    }
+                }
+            }
+
+            for (auto& fut : futures) {
+                fut.get();
+            } 
+        } else {
+            for (int i = 0; i < M; i++) {
+                for (int j = 0; j < N; j++) {
+                    if (access_transistors[i][j]) {
+                        float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
+                        G(i, j) = (float) 1./RRAM[i][j].GetResistance(v);
+                    } else {
+                        G(i, j) = 0;
+                    }
                 }
             }
         }

@@ -2,6 +2,7 @@
 #define NONLINEAR_CROSSBAR_SOLVER_H_
 
 #include "memristor_model/JART_VCM_v1b_var.h"
+#include "threadpool.h"
 
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
@@ -57,6 +58,7 @@ Eigen::VectorXf FixedpointSolve(
     const float Rswl1, const float Rswl2, const float Rsbl1, const float Rsbl2,
     const float Rwl, const float Rbl,
     Eigen::ConjugateGradient<Eigen::SparseMatrix<float>>& solver,
+    ThreadPool& pool,
     const bool print = false
 );
 

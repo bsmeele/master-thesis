@@ -25,7 +25,7 @@ Eigen::VectorXf CrossbarSimulator::NonlinearSolve(
     Eigen::VectorXf E = ComputeE(M, N, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl);
 
     if (method == "fixed-point") {
-        return FixedpointSolve(RRAM, access_transistors, Vguess, partial_G_ABCD, E, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, linear_solver);
+        return FixedpointSolve(RRAM, access_transistors, Vguess, partial_G_ABCD, E, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, linear_solver, pool);
     } else if (method == "NewtonRaphson") {
         return NewtonRaphsonSolve(RRAM, access_transistors, Vguess, partial_G_ABCD, E, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, linear_solver);
     } else if (method == "Broyden") {
@@ -33,7 +33,7 @@ Eigen::VectorXf CrossbarSimulator::NonlinearSolve(
     } else if (method == "BroydenInv") {
         return BroydenInvSolve(RRAM, access_transistors, Vguess, partial_G_ABCD, E, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, linear_solver);
     } else {
-        return FixedpointSolve(RRAM, access_transistors, Vguess, partial_G_ABCD, E, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, linear_solver);
+        return FixedpointSolve(RRAM, access_transistors, Vguess, partial_G_ABCD, E, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, linear_solver, pool);
     }
 }
 
