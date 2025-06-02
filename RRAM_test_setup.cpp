@@ -15,6 +15,7 @@
 #include <regex>
 #include <string>
 
+// Input argumets: M N batch_size write weight_ratio input_ratio
 int main(int argc, char* argv[]) {
     srand((unsigned int) time(0));
 

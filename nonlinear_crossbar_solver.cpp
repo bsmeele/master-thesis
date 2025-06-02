@@ -75,7 +75,9 @@ Eigen::VectorXf BroydenInvSolve(
             }
 
             if (it >= it_max) {
-                if (print) { std::cout << "Iteration limit reached: " << it << std::endl; }
+                if (non_linear_warn_iteration_limit) {
+                    std::cout << "Non-linear iteration limit reached with error " << Fv.norm() << std::endl;
+                }
                 return Vguess;
             }
 
@@ -96,6 +98,10 @@ Eigen::VectorXf BroydenInvSolve(
                 } else {
                     std::cout << "Solved in " << it << " iterations" << std::endl;
                 }
+            }
+            
+            if (it >= it_max && non_linear_warn_iteration_limit) {
+                std::cout << "Non-linear fixed-point iteration limit reached with error " << Fv.norm() << std::endl;
             }
 
             return Vout;
@@ -197,7 +203,9 @@ Eigen::VectorXf BroydenSolve(
             }
 
             if (it >= it_max) {
-                if (print) { std::cout << "Iteration limit reached: " << it << std::endl; }
+                if (non_linear_warn_iteration_limit) {
+                    std::cout << "Non-linear iteration limit reached with error " << Fv.norm() << std::endl;
+                }
                 return Vguess;
             }
 
@@ -218,6 +226,10 @@ Eigen::VectorXf BroydenSolve(
                 } else {
                     std::cout << "Solved in " << it << " iterations" << std::endl;
                 }
+            }
+            
+            if (it >= it_max && non_linear_warn_iteration_limit) {
+                std::cout << "Non-linear fixed-point iteration limit reached with error " << Fv.norm() << std::endl;
             }
 
             return Vout;
@@ -314,7 +326,9 @@ Eigen::VectorXf NewtonRaphsonSolve(
             }
 
             if (it >= it_max) {
-                if (print) { std::cout << "Iteration limit reached: " << it << std::endl; }
+                if (non_linear_warn_iteration_limit) {
+                    std::cout << "Non-linear iteration limit reached with error " << Fv.norm() << std::endl;
+                }
                 return Vguess;
             }
 
@@ -335,6 +349,10 @@ Eigen::VectorXf NewtonRaphsonSolve(
                 } else {
                     std::cout << "Solved in " << it << " iterations" << std::endl;
                 }
+            }
+            
+            if (it >= it_max && non_linear_warn_iteration_limit) {
+                std::cout << "Non-linear fixed-point iteration limit reached with error " << Fv.norm() << std::endl;
             }
 
             return Vout;
