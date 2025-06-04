@@ -84,7 +84,7 @@ int main(int argc, char* argv[]) {
     // for batch_num
     for (int i = 0; i < batch_size; i++) {
         std::ostringstream ss;
-        ss << i << " out of " << batch_size << " sims completed (" << std::fixed << std::setprecision(1) << (float) i/batch_size * 100. << "%)";
+        ss << i << " out of " << batch_size << " sims completed (" << std::fixed << std::setprecision(1) << (float) i/batch_size * 100. << "%) ";
         std::cout << "\r" << ss.str() << std::flush;
         
         // Randomly initialize the weigths based on the ratio

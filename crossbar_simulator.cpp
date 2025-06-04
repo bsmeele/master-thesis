@@ -2,6 +2,7 @@
 
 #include "nonlinear_crossbar_solver.h"
 #include "crossbar_model/linear_crossbar_solver.h"
+#include "simulation_settings.h"
 
 #include <iostream>
 
@@ -45,19 +46,37 @@ std::vector<std::vector<float>> CrossbarSimulator::ApplyVoltage(
 ) {
     Eigen::VectorXf Vout = NonlinearSolve(Vguess, Vappwl1, Vappwl2, Vappbl1, Vappbl2, method);
 
-    std::vector<std::vector<float>> Iout;
-    for (int i = 0; i < M; i++) {
-        std::vector<float> row;
-        for (int j = 0; j < N; j++) {
-            if (!access_transistors[i][j]) {
-                row.push_back(0.);
-                continue;
+    std::vector<std::vector<float>> Iout(M, std::vector<float>(N));
+
+    if (simulation_num_threads > 0) {
+        std::vector<std::future<void>> futures;
+        for (int i = 0; i < M; i++) {
+            for (int j = 0; j < N; j++) {
+                if (access_transistors[i][j]) {
+                    futures.emplace_back(pool.enqueue([&, i, j]() {
+                        float v = Vout(i*N + j) - Vout(i*N + j + M*N);
+                        Iout[i][j] = RRAM[i][j].ApplyVoltage(v, dt);
+                    }));
+                } else {
+                    Iout[i][j] = 0.;
+                }
             }
-            float v = Vout(i*N + j) - Vout(i*N + j + M*N);
-            float I = RRAM[i][j].ApplyVoltage(v, dt);
-            row.push_back(I);
         }
-        Iout.push_back(row);
+
+        for (auto& fut : futures) {
+            fut.get();
+        } 
+    } else {
+        for (int i = 0; i < M; i++) {
+            for (int j = 0; j < N; j++) {
+                if (access_transistors[i][j]) {
+                    float v = Vout(i*N + j) - Vout(i*N + j + M*N);
+                    Iout[i][j] = RRAM[i][j].ApplyVoltage(v, dt);
+                } else {
+                    Iout[i][j] = 0.;
+                }
+            }
+        }
     }
 
     return Iout;

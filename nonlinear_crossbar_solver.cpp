@@ -423,6 +423,7 @@ Eigen::VectorXf FixedpointSolve(
     int it = 0;
     while (true) {
         // Determine G
+        // Skip if multithreading is off
         if (simulation_num_threads > 0) {
             std::vector<std::future<void>> futures;
             for (int i = 0; i < M; i++) {
