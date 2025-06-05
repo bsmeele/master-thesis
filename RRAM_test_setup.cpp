@@ -177,12 +177,15 @@ int main(int argc, char* argv[]) {
 
         // Write all to files
         if (write) {
+            int64_t M64 = static_cast<int64_t>(M);
+            int64_t N64 = static_cast<int64_t>(N);
+
             std::string sim_dir = "sim_" + std::to_string(i);
             std::filesystem::create_directory(top_dir/sim_dir);
 
-            std::ofstream weight_file(top_dir/sim_dir/"weight.bin");
-            weight_file.write(reinterpret_cast<const char*>(&M), sizeof(int64_t));
-            weight_file.write(reinterpret_cast<const char*>(&N), sizeof(int64_t));
+            std::ofstream weight_file(top_dir/sim_dir/"weight.bin", std::ios::binary);
+            weight_file.write(reinterpret_cast<const char*>(&M64), sizeof(int64_t));
+            weight_file.write(reinterpret_cast<const char*>(&N64), sizeof(int64_t));
             for (int m = 0; m < M; m++) {
                 for (int n = 0; n < N; n++) {
                     int64_t value = weights[m][n] ? 1 : 0;
@@ -191,24 +194,24 @@ int main(int argc, char* argv[]) {
             }
             weight_file.close();
 
-            std::ofstream input_file(top_dir/sim_dir/"input.bin");
-            input_file.write(reinterpret_cast<const char*>(&M), sizeof(int64_t));
+            std::ofstream input_file(top_dir/sim_dir/"input.bin", std::ios::binary);
+            input_file.write(reinterpret_cast<const char*>(&M64), sizeof(int64_t));
             for (int m = 0; m < M; m++) {
                 int64_t value = input[m] ? 1 : 0;
                 input_file.write(reinterpret_cast<const char*>(&value), sizeof(int64_t));
             }
             input_file.close();
 
-            std::ofstream out_file(top_dir/sim_dir/"out.bin");
-            out_file.write(reinterpret_cast<const char*>(&M), sizeof(int64_t));
-            out_file.write(reinterpret_cast<const char*>(&N), sizeof(int64_t));
+            std::ofstream out_file(top_dir/sim_dir/"out.bin", std::ios::binary);
+            out_file.write(reinterpret_cast<const char*>(&M64), sizeof(int64_t));
+            out_file.write(reinterpret_cast<const char*>(&N64), sizeof(int64_t));
             for (int m = 0; m < M; m++) {
                 out_file.write(reinterpret_cast<const char*>(Iout_avg[m].data()), N * sizeof(float));
             }
             out_file.close();
             
-            std::ofstream mac_file(top_dir/sim_dir/"out_MAC.bin");
-            mac_file.write(reinterpret_cast<const char*>(&M), sizeof(int64_t));
+            std::ofstream mac_file(top_dir/sim_dir/"out_MAC.bin", std::ios::binary);
+            mac_file.write(reinterpret_cast<const char*>(&M64), sizeof(int64_t));
             mac_file.write(reinterpret_cast<const char*>(Iout_MAC.data()), N * sizeof(float));
             mac_file.close();
         }

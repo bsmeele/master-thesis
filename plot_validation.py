@@ -4,7 +4,7 @@ import re
 import numpy as np
 import matplotlib.pyplot as plt
 
-def save_bin(path,array):
+def save_bin(path, array):
     shape = np.array(array.shape, dtype=np.float32)  # Store shape as int64
     # print(shape)
     with open(path, "wb") as f:
@@ -22,7 +22,7 @@ def load_bin(path, dtype=np.float64, shape_len=2):
         # Read data
         data = np.fromfile(f, dtype=dtype)
         shape = tuple(shape)
-        # print(shape)
+
         # Reshape
         array = data.reshape(shape)
        
@@ -151,9 +151,63 @@ def main():
     plt.show()
 
 
+def other_main():
+    base_folder = "RRAM_test_data/batch_66"
+    dir_pattern = r"sim_\d+"
+
+    crossbar_size = 128
+    
+    lrs = np.zeros((crossbar_size, crossbar_size))
+    hrs = np.zeros((crossbar_size, crossbar_size))
+    lrs_cnt = np.zeros((crossbar_size, crossbar_size))
+    hrs_cnt = np.zeros((crossbar_size, crossbar_size))
+
+    for subdir in os.listdir(base_folder):
+        subdir_path = os.path.join(base_folder, subdir)
+
+        if os.path.isdir(subdir_path) and re.match(dir_pattern, subdir):
+            input_data = load_bin(os.path.join(subdir_path, "input.bin"), dtype=np.int64, shape_len=1)
+            weight_data = load_bin(os.path.join(subdir_path, "weight.bin"), dtype=np.int64, shape_len=2)
+
+            mac_data_out = load_bin(os.path.join(subdir_path, "out_MAC.bin"), dtype=np.float32, shape_len=1)
+            mem_data_out = load_bin(os.path.join(subdir_path, "out.bin"), dtype=np.float32, shape_len=2)
+            
+            for row in range(len(mem_data_out)):
+                if input_data[row]:
+                    for col in range(len(mem_data_out[row])):
+                        if (mem_data_out[row][col] > 1 or mem_data_out[row][col] < -1):
+                            print(mem_data_out[row][col])
+                        if weight_data[row][col] > 0:
+                            lrs[row][col] += mem_data_out[row][col]
+                            lrs_cnt[row][col] += 1
+                        else:
+                            hrs[row][col] += mem_data_out[row][col]
+                            hrs_cnt[row][col] += 1
+
+    for row in range(len(lrs)):
+        for col in range(len(lrs[0])):
+            lrs[row][col] = lrs[row][col] / lrs_cnt[row][col]
+            hrs[row][col] = hrs[row][col] / hrs_cnt[row][col]
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+
+    # Heatmap for matrix1
+    cax1 = ax1.imshow(lrs, cmap='hot', aspect='auto')
+    ax1.set_title('LRS')
+    fig.colorbar(cax1, ax=ax1)
+
+    # Heatmap for matrix2
+    cax2 = ax2.imshow(hrs, cmap='hot', aspect='auto')
+    ax2.set_title('HRS')
+    fig.colorbar(cax2, ax=ax2)
+
+    plt.tight_layout()
+    plt.show()
+
+
 if __name__ == "__main__":
     try:
-        main()
+        other_main()
     except Exception as e:
         print(e)
     
