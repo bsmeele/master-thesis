@@ -73,6 +73,12 @@ class CrossbarSimulator {
     }
     
     void SetRRAM(std::vector<std::vector<bool>> weights);
+    void SetAccessTransistors(std::vector<bool> gate_lines);
+    Eigen::VectorXf LinearSolve(
+        Eigen::VectorXf Vguess,
+        const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,
+        const Eigen::VectorXf& Vappbl1, const Eigen::VectorXf& Vappbl2
+    );
     Eigen::VectorXf NonlinearSolve(
         Eigen::VectorXf Vguess,
         const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,

@@ -17,6 +17,59 @@ void CrossbarSimulator::SetRRAM(std::vector<std::vector<bool>> weights) {
     }
 }
 
+void CrossbarSimulator::SetAccessTransistors(std::vector<bool> gate_lines) {
+    assert(gate_lines.size() == RRAM.size());
+    for (int m = 0; m < M; m++) {
+        if (gate_lines[m]) {
+            access_transistors[m] = std::vector<bool>(N, true);
+        } else {
+            access_transistors[m] = std::vector<bool>(N, false);
+        }
+    }
+}
+
+Eigen::VectorXf CrossbarSimulator::LinearSolve(
+        Eigen::VectorXf Vguess,
+        const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,
+        const Eigen::VectorXf& Vappbl1, const Eigen::VectorXf& Vappbl2
+) {
+    Eigen::VectorXf E = ComputeE(M, N, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl);
+
+    Eigen::MatrixXf G(M, N);
+    if (simulation_num_threads > 0) {
+        std::vector<std::future<void>> futures;
+        for (int i = 0; i < M; i++) {
+            for (int j = 0; j < N; j++) {
+                if (access_transistors[i][j]) {
+                    futures.emplace_back(pool.enqueue([&, i, j]() {
+                        float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
+                        G(i, j) = (float) 1./RRAM[i][j]->GetResistance(v);
+                    }));
+                } else {
+                    G(i, j) = 0;
+                }
+            }
+        }
+
+        for (auto& fut : futures) {
+            fut.get();
+        } 
+    } else {
+        for (int i = 0; i < M; i++) {
+            for (int j = 0; j < N; j++) {
+                if (access_transistors[i][j]) {
+                    float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
+                    G(i, j) = (float) 1./RRAM[i][j]->GetResistance(v);
+                } else {
+                    G(i, j) = 0;
+                }
+            }
+        }
+    }
+
+    return SolveCam(G, Vguess, partial_G_ABCD, E, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, linear_solver);
+}
+
 Eigen::VectorXf CrossbarSimulator::NonlinearSolve(
     Eigen::VectorXf Vguess,
     const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,
