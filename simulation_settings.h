@@ -23,7 +23,7 @@ const double memristor_get_resistance_voltage_threshold = 1e-6;  // The maximum 
 const float non_linear_fixed_point_a = 1.;                // Dampening factor of the fixed point solver
 const float non_linear_fixed_point_it_max = 100;          // Iteration limit of the fixed point solver
 const float non_linear_fixed_point_voltage_nudge = 1e-9;  // Amount the voltage guess will be nudged by if a NAN is returned from the linear solver
-const float non_linear_fixed_point_criterion = 1e-6;      // Exit criterion of the fixed point solver
+const float non_linear_fixed_point_criterion = 1e-3;      // Exit criterion of the fixed point solver
 const bool non_linear_warn_iteration_limit = true;       // Warns if the solver reaches the iteration limit
 
 // Voltage pulse (as used in RRAM_validation.cpp)
@@ -34,6 +34,6 @@ const float voltage_pulse_fall_time = 5e-6;  // Time for the voltage pulse to go
 
 const float simulation_time_step = 1e-6;     // Delta time for each simulation step. Note: the memristor model can dynamically reduce this time step temporarilly if it detects large changes (see memristor_dynamic_time_step_N_limit)
 
-const unsigned int simulation_num_threads = 0;
+const unsigned int simulation_num_threads = 4;
 
 #endif  // SIMULATION_SETTINGS_H_
