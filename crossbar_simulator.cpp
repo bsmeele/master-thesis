@@ -12,7 +12,7 @@ void CrossbarSimulator::SetRRAM(std::vector<std::vector<bool>> weights) {
 
     for (int i = 0; i < weights.size(); i++) {
         for (int j = 0; j < weights[0].size(); j++) {
-            RRAM[i][j].SetWeight(weights[i][j]);
+            RRAM[i][j]->SetWeight(weights[i][j]);
         }
     }
 }
@@ -55,7 +55,7 @@ std::vector<std::vector<float>> CrossbarSimulator::ApplyVoltage(
                 if (access_transistors[i][j]) {
                     futures.emplace_back(pool.enqueue([&, i, j]() {
                         float v = Vout(i*N + j) - Vout(i*N + j + M*N);
-                        Iout[i][j] = RRAM[i][j].ApplyVoltage(v, dt);
+                        Iout[i][j] = RRAM[i][j]->ApplyVoltage(v, dt);
                     }));
                 } else {
                     Iout[i][j] = 0.;
@@ -71,7 +71,7 @@ std::vector<std::vector<float>> CrossbarSimulator::ApplyVoltage(
             for (int j = 0; j < N; j++) {
                 if (access_transistors[i][j]) {
                     float v = Vout(i*N + j) - Vout(i*N + j + M*N);
-                    Iout[i][j] = RRAM[i][j].ApplyVoltage(v, dt);
+                    Iout[i][j] = RRAM[i][j]->ApplyVoltage(v, dt);
                 } else {
                     Iout[i][j] = 0.;
                 }
@@ -88,7 +88,7 @@ std::vector<float> CrossbarSimulator::CalculateIout(Eigen::VectorXf Vout) {
         float Ioutj = 0.;
         for (int i = 0; i < M; i++) {
             float v = Vout(i*N + j) - Vout(i*N + j + M*N);
-            Ioutj += RRAM[i][j].ApplyVoltage(v, 0);
+            Ioutj += RRAM[i][j]->ApplyVoltage(v, 0);
         }
         Iout.push_back(Ioutj);
     }

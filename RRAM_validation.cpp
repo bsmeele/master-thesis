@@ -2,6 +2,7 @@
 #include "crossbar_model/linear_crossbar_solver.h"
 #include "crossbar_simulator.h"
 #include "simulation_settings.h"
+#include "memristor_model/JART_VCM_v1b_var.h"
 
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
@@ -175,6 +176,7 @@ int main(int argc, char* argv[]) {
     // Ndiscmin of 0.0001, default parameters otherwise
     // Transistor gate is connected to source line, thus memristor will be connected if source line is 1
     CrossbarSimulator crossbar = CrossbarSimulator(M, N);
+    crossbar.Initialize<JART_VCM_v1b_var>();
     // crossbar.Rswl1 = 0.;
     // crossbar.Rswl2 = 0.;
     // crossbar.Rsbl1 = 0.;

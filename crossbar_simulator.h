@@ -1,7 +1,7 @@
 #ifndef CROSSBAR_SIMULATOR_H_
 #define CROSSBAR_SIMULATOR_H_
 
-#include "memristor_model/JART_VCM_v1b_var.h"
+#include "memristor_model/memristor.h"
 #include "crossbar_model/linear_crossbar_solver.h"
 #include "threadpool.h"
 
@@ -9,13 +9,14 @@
 #include <Eigen/Sparse>
 #include <vector>
 #include <string>
+#include <memory>
 
 class CrossbarSimulator {
     public:
     int M;
     int N;
 
-    std::vector<std::vector<JART_VCM_v1b_var>> RRAM;
+    std::vector<std::vector<std::unique_ptr<Memristor>>> RRAM;
     std::vector<std::vector<bool>> access_transistors;
 
     float Rswl1;
@@ -36,7 +37,16 @@ class CrossbarSimulator {
         this->N = N;
 
         // Initialize RRAM
-        RRAM = std::vector<std::vector<JART_VCM_v1b_var>>(M, std::vector<JART_VCM_v1b_var>(N, JART_VCM_v1b_var()));
+        // RRAM = std::vector<std::vector<std::unique_ptr<Memristor>>>(M, std::vector<std::unique_ptr<Memristor>>(N));
+        RRAM.resize(M);
+        for (int i = 0; i < M; ++i) {
+            RRAM[i].resize(N);
+        }
+        // for (int i = 0; i < M; ++i) {
+        //     for (int j = 0; j < N; ++j) {
+        //         RRAM[i][j] = std::make_unique<MemristorType>();
+        //     }
+        // }
 
         // Initialize access transistors to all on
         access_transistors = std::vector<std::vector<bool>>(M, std::vector<bool>(N, true));
@@ -51,6 +61,15 @@ class CrossbarSimulator {
 
         // Precompute partial_G_ABCD
         partial_G_ABCD = PartiallyPrecomputeG_ABCD(M, N, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl);
+    }
+
+    template <typename MemristorType>
+    void Initialize() {
+        for (int i = 0; i < M; ++i) {
+            for (int j = 0; j < N; ++j) {
+                RRAM[i][j] = std::make_unique<MemristorType>();
+            }
+        }
     }
     
     void SetRRAM(std::vector<std::vector<bool>> weights);
