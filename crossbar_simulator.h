@@ -3,6 +3,7 @@
 
 #include "memristor_model/memristor.h"
 #include "crossbar_model/linear_crossbar_solver.h"
+#include "threadpool.h"
 
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
@@ -29,7 +30,9 @@ class CrossbarSimulator {
 
     Eigen::ConjugateGradient<Eigen::SparseMatrix<float>> linear_solver;
 
-    CrossbarSimulator(int M, int N) : linear_solver() {
+    ThreadPool pool;
+
+    CrossbarSimulator(int M, int N) : linear_solver(), pool(simulation_num_threads) {
         this->M = M;
         this->N = N;
 

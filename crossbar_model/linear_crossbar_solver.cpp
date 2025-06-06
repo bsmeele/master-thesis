@@ -10,7 +10,7 @@
 Eigen::VectorXf SolveCam(
     const Eigen::MatrixXf& G,  // Conductance matrix of the devices in the crossbar
     const Eigen::VectorXf& Vguess,  // Initial guess for the nodal voltages. Supplying a zero vector acts as if no guess is given
-    Eigen::SparseMatrix<float> G_ABCD,  // A partially precomputed version of the G_ABCD matrix. This precompution is done with the PartiallyPrecomputeG_ABCD() function
+    Eigen::SparseMatrix<float>& G_ABCD,  // A partially precomputed version of the G_ABCD matrix. This precompution is done with the PartiallyPrecomputeG_ABCD() function
     const Eigen::VectorXf& E,
     const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,  // Applied voltages to the wordlines of the crossbar
     const Eigen::VectorXf& Vappbl1, const Eigen::VectorXf& Vappbl2,  // Applied voltages to the bitlines of the crossbar
@@ -76,6 +76,34 @@ Eigen::VectorXf SolveCam(
         std::cout << "V:\n" << V.head(M*N) - V.tail(M*N) << std::endl << std::endl;
     }
 
+    // Submatrix A
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < N; j++) {
+            G_ABCD.coeffRef(i*N + j, i*N + j) -= G(i, j);
+        }
+    }
+
+    // Submatrix B
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < N; j++) {
+            G_ABCD.coeffRef(i*N + j, i*N + j + M*N) = 0;
+        }
+    }
+
+    // Submatrix C
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < N; j++) {
+            G_ABCD.coeffRef(i*N + j + M*N, i*N + j) = 0;
+        }
+    }
+
+    // Submatrix D
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < N; j++) {
+            G_ABCD.coeffRef(i*N + j + M*N, i*N + j + M*N) -= G(i, j);
+        }
+    }
+
     return V;
 }
 
@@ -114,13 +142,13 @@ Eigen::SparseMatrix<float> PartiallyPrecomputeG_ABCD(
     // Submatrix B
     for (int i = 0; i < M; i++) {
         for (int j = 0; j < N; j++) {
-            G_ABCD.insert(i*N + j, i*N + j + M*N) = 1e-6;
+            G_ABCD.insert(i*N + j, i*N + j + M*N) = 0.;
         }
     }
     // Submatrix C
     for (int i = 0; i < M; i++) {
         for (int j = 0; j < N; j++) {
-            G_ABCD.insert(i*N + j + M*N, i*N + j) = 1e-6;
+            G_ABCD.insert(i*N + j + M*N, i*N + j) = 0.;
         }
     }
     // Submatrix D

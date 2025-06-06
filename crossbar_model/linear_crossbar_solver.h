@@ -7,7 +7,8 @@
 
 Eigen::VectorXf SolveCam(
     const Eigen::MatrixXf& G,
-    const Eigen::VectorXf& Vguess, Eigen::SparseMatrix<float> G_ABCD,
+    const Eigen::VectorXf& Vguess,
+    Eigen::SparseMatrix<float>& G_ABCD,
     const Eigen::VectorXf& E,
     const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,
     const Eigen::VectorXf& Vappbl1, const Eigen::VectorXf& Vappbl2,

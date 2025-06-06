@@ -171,6 +171,7 @@ int main(int argc, char* argv[]) {
     float Rbl = 2.;
 
     Eigen::SparseMatrix<float> G_ABCD = PartiallyPrecomputeG_ABCD(M, N, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl);
+    // G_ABCD.makeCompressed();
 
     // Eigen::SparseLU<Eigen::SparseMatrix<float>> solver;
     Eigen::ConjugateGradient<Eigen::SparseMatrix<float>> solver;

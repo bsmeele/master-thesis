@@ -2,12 +2,20 @@ import matplotlib.pyplot as plt
 import csv
 
 def main():
-    # file_path = 'out_files/out.out'
-    file_path = 'out.out'
-    # file_path = 'out_16x16_bottom_left.out'
-    # file_path = 'out_16x16_top_right.out'
-    # file_path = 'out_16x16_top_right_access_transistors.out'
+    file_path = 'out_files/out.out'
+    # file_path = 'out.out'
+    # file_path = 'out_files/out_16x16_bottom_left.out'
+    # file_path = 'out_files/out_16x16_top_right.out'
+    # file_path = 'out_files/out_16x16_top_right_access_transistors.out'
     file_path4 = 'out_files/all-signals-no-var.csv'
+
+    # file_path = 'out_files/out_8x8_top_right.out'
+    # file_path2 = 'out_files/out_8x8_bottom_left.out'
+    # file_path = 'out_files/out_32x32_top_right.out'
+    file_path2 = 'out_files/out_32x32_bottom_left.out'
+
+    # file_path3 = 'out_files/out_32x32_bottom_row.out'
+    file_path3 = 'out_files/out_32x32_top_row.out'
 
     t = []  # Time
     V = []  # Votage
@@ -21,6 +29,22 @@ def main():
     R_plug = []
     R_series = []
     R_total = []
+
+    t2 = []  # Time
+    V2 = []  # Votage
+    I2 = []  # Current
+    N2 = []  # Oxygen vacancies (state variable)
+    T2 = []  # Temperature
+    V2_schottky = []
+    V2_discplugserial = []
+    R2_schottky = []
+    R2_disc = []
+    R2_plug = []
+    R2_series = []
+    R2_total = []
+
+    t3 = []
+    N_row = []
 
     c_t_T = []
     c_T = []
@@ -119,6 +143,34 @@ def main():
 
                 except ValueError:
                     print(f"Skipping invalid line: {line.strip()}")
+
+    with open(file_path2, 'r') as file:
+        for line in file:
+            numbers = line.split()
+            if len(numbers) >= 12:
+                try:
+                    t2.append(float(numbers[0]))
+                    V2.append(float(numbers[1]))
+                    I2.append(float(numbers[2]))
+                    N2.append(float(numbers[3]))
+                    T2.append(float(numbers[4]))
+                    V2_schottky.append(float(numbers[5]))
+                    V2_discplugserial.append(float(numbers[6]))
+                    R2_schottky.append(float(numbers[7]))
+                    R2_disc.append(float(numbers[8]))
+                    R2_plug.append(float(numbers[9]))
+                    R2_series.append(float(numbers[10]))
+                    R2_total.append(float(numbers[11]))
+
+                except ValueError:
+                    print(f"Skipping invalid line: {line.strip()}")
+
+    with open(file_path3, 'r') as file:
+        for line in file:
+            nums = list(map(float, line.strip().split()))
+            if nums:
+                t3.append(float(nums[0]))
+                N_row.append([float(n) for n in nums[1:]])
 
     with open(file_path4, mode='r', newline='') as file:
         reader = csv.reader(file)
@@ -332,6 +384,9 @@ def main():
     c_T = [e * 1e3 for e in c_T]
     c_Rseries = [e + 650 for e in c_Rline]
     c_Rschottky = [(v - (rd + rp + rs) * i) / i if i != 0 else 0 for v, rd, rp, rs, i in zip(c_AE, c_Rdisc, c_Rplug, c_Rseries, c_IAE)]
+    
+    I_abs2 = [abs(e) for e in I2]
+    I_dif2 = [abs(e1 - e2) for e1, e2 in zip(I, I2)]
 
     i = 0
     j = 0
@@ -385,6 +440,8 @@ def main():
     plt.subplot(2, 2, 1)
     plt.plot(V, I_abs, '-', markersize=2, label='C++', color='blue')
     plt.plot(c_AE, c_IAE_abs, markersize=2, label='Cadence', color='orange')
+    # plt.plot(V, I_abs, '-', markersize=2, label='Top right', color='blue')
+    # plt.plot(V2, I_abs2, '-', markersize=2, label='Bottom left', color='orange')
     plt.yscale('log')
     # plt.xlim(min(V), max(V))
     plt.xlim(-1.5, 1.5)
@@ -399,6 +456,8 @@ def main():
     plt.plot(t, N, '-', markersize=2, label='C++', color='blue')
     plt.plot(c_t_Nreal, c_Nreal, '-', markersize=2, label='Cadence', color='orange')
     # plt.plot(t_dif, N_dif, '-', markersize=2, label='Error', color='purple')
+    # plt.plot(t, N, '-', markersize=2, label='Top right', color='blue')
+    # plt.plot(t2, N2, '-', markersize=2, label='Bottom left', color='orange')
     plt.yscale('log')
     plt.xlim(0, 6)
     plt.title('Oxygen vacancy concentration of the disc')
@@ -408,9 +467,11 @@ def main():
     plt.grid(True)
 
     plt.subplot(2, 2, 3)
-    plt.plot(t, T, '-', markersize=2, label='C++', color='blue')
+    plt.plot(t2, T2, '-', markersize=2, label='C++', color='blue')
     plt.plot(c_t_T, c_T, '-', markersize=2, label='Cadence', color='orange')
     # plt.plot(t_dif, T_dif, '-', markersize=2, label='Error', color='purple')
+    # plt.plot(t2, T2, '-', markersize=2, label='Top right', color='blue')
+    # plt.plot(t2, T2, '-', markersize=2, label='Bottom left', color='orange')
     plt.xlim(0, 6)
     plt.title('Temperature')
     plt.xlabel('Time (s)')
@@ -433,18 +494,18 @@ def main():
     # plt.legend()
     # plt.grid(True)
 
-    plt.subplot(2, 2, 4)
-    plt.plot(t_dif, I_dif, '-', label='absolute', color='blue')
-    plt.plot(t_dif, I_dif_reg, '-', label='relative', color='orange')
-    plt.yscale('log')
-    plt.xlim(0, 6)
-    # plt.ylim(1e-12, 1e-3)
-    plt.ylim(1e-12, 1e2)
-    plt.title('Current difference between Cadence and C++ simulation')
-    plt.xlabel('Time (s)')
-    plt.ylabel('Current difference (A)')
-    plt.legend()
-    plt.grid(True)
+    # plt.subplot(2, 2, 4)
+    # plt.plot(t_dif, I_dif, '-', label='absolute', color='blue')
+    # plt.plot(t_dif, I_dif_reg, '-', label='relative', color='orange')
+    # plt.yscale('log')
+    # plt.xlim(0, 6)
+    # # plt.ylim(1e-12, 1e-3)
+    # plt.ylim(1e-12, 1e2)
+    # plt.title('Current difference between Cadence and C++ simulation')
+    # plt.xlabel('Time (s)')
+    # plt.ylabel('Current difference (A)')
+    # plt.legend()
+    # plt.grid(True)
 
     # plt.subplot(2, 2, 3)
     # plt.plot(t, I, '-', markersize=2, label='I', color='blue')
@@ -459,15 +520,17 @@ def main():
     # plt.legend()
     # plt.grid(True)
 
-    # plt.subplot(2, 2, 4)
-    # plt.plot(t_dif, I_dif_reg, '-')
-    # plt.yscale('log')
-    # plt.xlim(0, 6)
-    # # plt.ylim(1e-12, 1e-3)
-    # plt.title('Regularized current difference between Cadence and C++ simulation')
-    # plt.xlabel('Time (s)')
-    # plt.ylabel('Current difference (A)')
-    # plt.grid(True)
+    plt.subplot(2, 2, 4)
+    plt.plot(t_dif, I_dif, '-', color='blue')
+    plt.plot(t_dif, I_dif_reg, '-', color='orange')
+    # plt.plot(t, I_dif2, '-')
+    plt.yscale('log')
+    plt.xlim(0, 6)
+    plt.ylim(1e-12, 0)
+    plt.title('Regularized current difference between Cadence and C++ simulation')
+    plt.xlabel('Time (s)')
+    plt.ylabel('Current difference (A)')
+    plt.grid(True)
 
     # plt.subplot(2, 2, 4)
     # plt.plot(t, R_disc, '-', label="R_disc", color='blue')
@@ -501,6 +564,14 @@ def main():
     # Adjust layout and display the plots
     plt.tight_layout()
     plt.show()
+
+    # for i in range(len(N_row[0])):
+    #     col = [row[i] for row in N_row]
+    #     plt.plot(t3, col, label=f'Col {i+1}')
+
+    # plt.legend()
+    # plt.grid(True)
+    # plt.show()
 
 
 if __name__ == "__main__":

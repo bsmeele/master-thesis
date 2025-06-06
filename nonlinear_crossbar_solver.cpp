@@ -75,7 +75,9 @@ Eigen::VectorXf BroydenInvSolve(
             }
 
             if (it >= it_max) {
-                if (print) { std::cout << "Iteration limit reached: " << it << std::endl; }
+                if (non_linear_warn_iteration_limit) {
+                    std::cout << "Non-linear iteration limit reached with error " << Fv.norm() << std::endl;
+                }
                 return Vguess;
             }
 
@@ -96,6 +98,10 @@ Eigen::VectorXf BroydenInvSolve(
                 } else {
                     std::cout << "Solved in " << it << " iterations" << std::endl;
                 }
+            }
+            
+            if (it >= it_max && non_linear_warn_iteration_limit) {
+                std::cout << "Non-linear fixed-point iteration limit reached with error " << Fv.norm() << std::endl;
             }
 
             return Vout;
@@ -197,7 +203,9 @@ Eigen::VectorXf BroydenSolve(
             }
 
             if (it >= it_max) {
-                if (print) { std::cout << "Iteration limit reached: " << it << std::endl; }
+                if (non_linear_warn_iteration_limit) {
+                    std::cout << "Non-linear iteration limit reached with error " << Fv.norm() << std::endl;
+                }
                 return Vguess;
             }
 
@@ -218,6 +226,10 @@ Eigen::VectorXf BroydenSolve(
                 } else {
                     std::cout << "Solved in " << it << " iterations" << std::endl;
                 }
+            }
+            
+            if (it >= it_max && non_linear_warn_iteration_limit) {
+                std::cout << "Non-linear fixed-point iteration limit reached with error " << Fv.norm() << std::endl;
             }
 
             return Vout;
@@ -314,7 +326,9 @@ Eigen::VectorXf NewtonRaphsonSolve(
             }
 
             if (it >= it_max) {
-                if (print) { std::cout << "Iteration limit reached: " << it << std::endl; }
+                if (non_linear_warn_iteration_limit) {
+                    std::cout << "Non-linear iteration limit reached with error " << Fv.norm() << std::endl;
+                }
                 return Vguess;
             }
 
@@ -335,6 +349,10 @@ Eigen::VectorXf NewtonRaphsonSolve(
                 } else {
                     std::cout << "Solved in " << it << " iterations" << std::endl;
                 }
+            }
+            
+            if (it >= it_max && non_linear_warn_iteration_limit) {
+                std::cout << "Non-linear fixed-point iteration limit reached with error " << Fv.norm() << std::endl;
             }
 
             return Vout;
@@ -391,6 +409,7 @@ Eigen::VectorXf FixedpointSolve(
     const float Rswl1, const float Rswl2, const float Rsbl1, const float Rsbl2,  // Resitances of the wordline and bitline voltage sources
     const float Rwl, const float Rbl,  // Wordline and bitline resistances of the crossbar
     Eigen::ConjugateGradient<Eigen::SparseMatrix<float>>& solver,
+    ThreadPool& pool,
     const bool print  // Boolean variable to print some debug information, default false
 ) {
     if (RRAM.size() == 0) { return Eigen::VectorXf(0); }
@@ -398,20 +417,40 @@ Eigen::VectorXf FixedpointSolve(
     int N = RRAM[0].size();
 
     Eigen::MatrixXf G(M, N);
-
     float a = non_linear_fixed_point_a;
 
     int it_max = non_linear_fixed_point_it_max;
     int it = 0;
     while (true) {
         // Determine G
-        for (int i = 0; i < M; i++) {
-            for (int j = 0; j < N; j++) {
-                if (access_transistors[i][j]) {
-                    float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
-                    G(i, j) = (float) 1./RRAM[i][j]->GetResistance(v);
-                } else {
-                    G(i, j) = 0;
+        // Skip if multithreading is off
+        if (simulation_num_threads > 0) {
+            std::vector<std::future<void>> futures;
+            for (int i = 0; i < M; i++) {
+                for (int j = 0; j < N; j++) {
+                    if (access_transistors[i][j]) {
+                        futures.emplace_back(pool.enqueue([&, i, j]() {
+                            float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
+                            G(i, j) = (float) 1./RRAM[i][j]->GetResistance(v);
+                        }));
+                    } else {
+                        G(i, j) = 0;
+                    }
+                }
+            }
+
+            for (auto& fut : futures) {
+                fut.get();
+            } 
+        } else {
+            for (int i = 0; i < M; i++) {
+                for (int j = 0; j < N; j++) {
+                    if (access_transistors[i][j]) {
+                        float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
+                        G(i, j) = (float) 1./RRAM[i][j]->GetResistance(v);
+                    } else {
+                        G(i, j) = 0;
+                    }
                 }
             }
         }
@@ -434,7 +473,9 @@ Eigen::VectorXf FixedpointSolve(
             }
 
             if (it >= it_max) {
-                if (print) { std::cout << "Iteration limit reached: " << it << std::endl; }
+                if (non_linear_warn_iteration_limit) {
+                    std::cout << "Non-linear fixed-point iteration limit reached with error " << Fv.norm() << std::endl;
+                }
                 return Vguess;
             }
 
@@ -457,11 +498,12 @@ Eigen::VectorXf FixedpointSolve(
                     std::cout << "Solved in " << it << " iterations" << std::endl;
                 }
             }
+            
+            if (it >= it_max && non_linear_warn_iteration_limit) {
+                std::cout << "Non-linear fixed-point iteration limit reached with error " << Fv.norm() << std::endl;
+            }
 
-            // if (it >= it_max) {
-            //     std::cout << "Iteration limit reached: " << it << std::endl;
-            //     std::cout << "Norm: " << Fv.norm() << std::endl;
-            // }
+            // std::cout << it << " " << Fv.norm() << std::endl;
 
             return Vout;
         }
