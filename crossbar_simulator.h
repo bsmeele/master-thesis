@@ -93,6 +93,16 @@ class CrossbarSimulator {
     );
     std::vector<float> CalculateIout(Eigen::VectorXf Vout);
 
+    void Simulate(
+        const std::vector<bool> Vwl1, const std::vector<bool> Vwl2,
+        const std::vector<bool> Vbl1, const std::vector<bool> Vbl2,
+        const std::vector<std::vector<bool>> weights,
+        const std::vector<std::array<float, 2>> waveform,
+        const float dt,
+        std::vector<std::vector<float>>& Iout,
+        std::vector<float>& Iout_MAC
+    );
+
     void SetCrossbarParameters(float Rswl1, float Rswl2, float Rsbl1, float Rsbl2, float Rwl, float Rbl);
     void UpdatePrecomputeG_ABCD();
 };

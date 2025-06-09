@@ -5,16 +5,17 @@
 
 class VTEAM: public Memristor {
 public:
-    float vOff = 0.5;
-    float vOn = -0.5;
-    float kOff = 10.;
-    float kOn = -100.;
+    float vOff = 0.02;
+    float vOn = -0.2;
+    float kOff = 5e-4;
+    float kOn = -10.;
     float alphaOff = 1.;
     float alphaOn = 3.;
-    float Ron = 100.;
+    float Ron = 50.;
     float Roff = 1000;
     float wOn = 0;
-    float wOff = 10;
+    float wOff = 3e-9;
+    float d = 3e-9;
 
     float w;
     
@@ -25,7 +26,7 @@ public:
     
 public:
     VTEAM() {
-        w = wOff;
+        w = wOn;
     }
 
     double ApplyVoltage(double v, double dt) override;

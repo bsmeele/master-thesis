@@ -148,6 +148,74 @@ std::vector<float> CrossbarSimulator::CalculateIout(Eigen::VectorXf Vout) {
     return Iout;
 }
 
+void CrossbarSimulator::Simulate(
+        const std::vector<bool> Vwl1, const std::vector<bool> Vwl2,
+        const std::vector<bool> Vbl1, const std::vector<bool> Vbl2,
+        const std::vector<std::vector<bool>> weights,
+        const std::vector<std::array<float, 2>> waveform,
+        const float dt,
+        std::vector<std::vector<float>>& Iout,
+        std::vector<float>& Iout_MAC
+) {
+    SetRRAM(weights);
+    SetAccessTransistors(Vwl1);
+        
+    Eigen::VectorXf Vappwl1 = Eigen::VectorXf::Zero(M);
+    Eigen::VectorXf Vappwl2 = Eigen::VectorXf::Zero(M);
+    Eigen::VectorXf Vappbl1 = Eigen::VectorXf::Zero(M);
+    Eigen::VectorXf Vappbl2 = Eigen::VectorXf::Zero(M);
+
+    Eigen::VectorXf Vguess = Eigen::VectorXf::Zero(2*M*N);
+
+    float V = 0;
+    float t = 0;
+
+    std::vector<std::vector<std::vector<float>>> Iwave;
+
+    for (int i = 0; i < waveform.size(); i++) {
+        float dv = (waveform[i][0] - V) / ((waveform[i][1] - t) / dt);
+        while (t < waveform[i][1]) {
+            for (int i = 0; i < M; i++) {
+                for (int j = 0; j < N; j++) {
+                    Vguess(i*N + j) = Vappwl1(i);
+                }
+            }
+
+            Iwave.push_back(ApplyVoltage(Vguess, Vappwl1, Vappwl2, Vappbl1, Vappbl2, dt));
+
+            for (int j = 0; j < M; j++) {
+                if (Vwl1[j]) {
+                    Vappwl1(j) += dv;
+                }
+            }
+
+            V += dv;
+            t += dt;
+        }
+    }
+    
+    for (int m = 0; m < M; m++) {
+        std::vector<float> row;
+        for (int n = 0; n < N; n++) {
+            float Iavg = 0;
+            for (int j = voltage_pulse_rise_time/simulation_time_step; j < (voltage_pulse_width - voltage_pulse_fall_time)/simulation_time_step; j++) {
+                Iavg += Iwave[j][m][n];
+            }
+            Iavg /= (voltage_pulse_width - voltage_pulse_rise_time - voltage_pulse_fall_time) / simulation_time_step;
+            row.push_back(Iavg);
+        }
+        Iout.push_back(row);
+    }
+
+    for (int n = 0; n < N; n++) {
+        float IMAC = 0;
+        for (int m = 0; m < M; m++) {
+            IMAC += Iout[m][n];
+        }
+        Iout_MAC.push_back(IMAC);
+    }
+}
+
 void CrossbarSimulator::SetCrossbarParameters(float Rswl1, float Rswl2, float Rsbl1, float Rsbl2, float Rwl, float Rbl) {
     this->Rswl1 = Rswl1;
     this->Rswl2 = Rswl2;

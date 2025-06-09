@@ -202,27 +202,6 @@ int main(int argc, char* argv[]) {
         }
         weights.push_back(row);
     }
-    // for (int i = 0; i < M; i++) {
-    //     std::vector<bool> row;
-    //     for (int j = 0; j < N; j++) {
-    //         if (std::rand()%2 == 0) {
-    //             row.push_back(true);
-    //         } else {
-    //             row.push_back(false);
-    //         }
-    //     }
-    //     weights.push_back(row);
-    // }
-
-    // std::vector<bool> Vapp;
-    // for (int i = 0; i < M; i++) {
-    //     if (std::rand()%2 == 0) {
-    //         Vapp.push_back(true);
-    //     } else {
-    //         Vapp.push_back(false);
-    //         crossbar.access_transistors[i] = std::vector<bool>(N, false);
-    //     }
-    // }
 
     std::vector<std::vector<std::vector<float>>> output_data;
     std::vector<std::vector<float>> output_data_MAC;
@@ -230,26 +209,15 @@ int main(int argc, char* argv[]) {
     auto start_time = std::chrono::high_resolution_clock::now();
 
     for (int i = 0; i < input_data.size(); i++) {
-        crossbar.SetRRAM(weights);
 
         std::vector<bool> Vapp;
         for (int j = 0; j < M; j++) {
             if (input_data[i][j] != 0) {
                 Vapp.push_back(true);
-                crossbar.access_transistors[j] = std::vector<bool>(N, true);
             } else {
                 Vapp.push_back(false);
-                crossbar.access_transistors[j] = std::vector<bool>(N, false);
             }
         }
-
-        float Vdd = 0.1;
-        Eigen::VectorXf Vappwl1 = Eigen::VectorXf::Zero(M);
-        Eigen::VectorXf Vappwl2 = Eigen::VectorXf::Zero(M);
-        Eigen::VectorXf Vappbl1 = Eigen::VectorXf::Zero(M);
-        Eigen::VectorXf Vappbl2 = Eigen::VectorXf::Zero(M);
-
-        Eigen::VectorXf Vguess = Eigen::VectorXf::Zero(2*M*N);
 
         // 0.1 V read voltage
         // width of 50 us
@@ -262,55 +230,10 @@ int main(int argc, char* argv[]) {
             {{0, voltage_pulse_width}}
         };
 
-        float V = 0;
-        float t = 0;
-
-        std::vector<std::vector<std::vector<float>>> Iwave;
-
-        for (int i = 0; i < Vwave.size(); i++) {
-            float dv = (Vwave[i][0] - V) / ((Vwave[i][1] - t) / dt);
-            while (t < Vwave[i][1]) {
-                for (int i = 0; i < M; i++) {
-                    for (int j = 0; j < N; j++) {
-                        Vguess(i*N + j) = Vappwl1(i);
-                    }
-                }
-
-                Iwave.push_back(crossbar.ApplyVoltage(Vguess, Vappwl1, Vappwl2, Vappbl1, Vappbl2, dt));
-
-                for (int j = 0; j < M; j++) {
-                    if (Vapp[j]) {
-                        Vappwl1(j) += dv;
-                    }
-                }
-                V += dv;
-                t += dt;
-            }
-        }
-
         std::vector<std::vector<float>> Iout_avg;
-        for (int m = 0; m < M; m++) {
-            std::vector<float> row;
-            for (int n = 0; n < N; n++) {
-                float Iavg = 0;
-                for (int j = voltage_pulse_rise_time/simulation_time_step; j < (voltage_pulse_width - voltage_pulse_fall_time)/simulation_time_step; j++) {
-                    Iavg += Iwave[j][m][n];
-                }
-                Iavg /= (voltage_pulse_width - voltage_pulse_rise_time - voltage_pulse_fall_time) / simulation_time_step;
-                row.push_back(Iavg);
-            }
-            Iout_avg.push_back(row);
-        }
-        // std::vector<std::vector<float>> Iout_avg = Iwave[(voltage_pulse_width/simulation_time_step)/2.];
-
         std::vector<float> Iout_MAC;
-        for (int n = 0; n < N; n++) {
-            float IMAC = 0;
-            for (int m = 0; m < M; m++) {
-                IMAC += Iout_avg[m][n];
-            }
-            Iout_MAC.push_back(IMAC);
-        }
+
+        crossbar.Simulate(Vapp, {}, {}, {}, weights, Vwave, dt, Iout_avg, Iout_MAC);
 
         output_data.push_back(Iout_avg);
         output_data_MAC.push_back(Iout_MAC);
@@ -319,11 +242,6 @@ int main(int argc, char* argv[]) {
     auto end_time = std::chrono::high_resolution_clock::now();
     auto execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
     std::cout << "Execution time: " << execution_time << " (ms)" << std::endl;
-
-    // for (int i = 0; i < 32; i++) {
-    //     std::cout << output_data_MAC[0][i] << " ";
-    // }
-    // std::cout << std::endl;
 
     std::ofstream outfile(top_dir/"output.bin", std::ios::binary);
 
@@ -374,13 +292,6 @@ int main(int argc, char* argv[]) {
     for (int64_t i = 0; i < rows; ++i) {
         outfile.write(reinterpret_cast<const char*>(output_data_MAC[i].data()), cols * sizeof(float));
     }
-
-    // for (int i = 0; i < output_data_MAC.size(); i++) {
-    //     for (int j = 0; j < output_data_MAC[i].size(); j++) {
-    //         std::cout << output_data_MAC[i][j] << " ";
-    //     }
-    //     std::cout << std::endl;
-    // }
 
     outfile.close();
     

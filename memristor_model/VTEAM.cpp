@@ -5,9 +5,9 @@
 
 void VTEAM::UpdateStateVariable(float v, float dt) {
     float dw = 0;
-    if (vOff < v) {
+    if (vOff <= v) {
         dw = kOff * pow(v/vOff - 1, alphaOff) * WindowFunctionOff(w);
-    } else if (v < vOn) {
+    } else if (v <= vOn) {
         dw = kOn * pow(v/vOn - 1, alphaOn) * WindowFunctionOn(w);
     }
 

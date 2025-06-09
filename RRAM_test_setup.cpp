@@ -2,6 +2,8 @@
 #include "crossbar_model/linear_crossbar_solver.h"
 #include "crossbar_simulator.h"
 #include "simulation_settings.h"
+#include "memristor.h"
+#include "JART_VCM_v1b_var.h"
 
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
@@ -67,6 +69,7 @@ int main(int argc, char* argv[]) {
     
     // Initialize crossbar
     CrossbarSimulator crossbar = CrossbarSimulator(M, N);
+    crossbar.Initialize<JART_VCM_v1b_var>();
     
     std::vector<std::vector<bool>> weights(M, std::vector<bool>(N));
     std::vector<bool> input(M);
@@ -93,87 +96,22 @@ int main(int argc, char* argv[]) {
                 weights[m][n] = ((double) rand())/RAND_MAX < weight_ratio;
             }
         }
-        // Set weights
-        crossbar.SetRRAM(weights);
 
         // Randomly initialize the input based on the ratio
         for (int m = 0; m < M; m++) {
             input[m] = ((double) rand())/RAND_MAX < input_ratio;
         }
 
-        // Set access transistors based on the input voltage
-        for (int m = 0; m < M; m++) {
-            if (input[m]) {
-                crossbar.access_transistors[m] = std::vector<bool>(N, true);
-            } else {
-                crossbar.access_transistors[m] = std::vector<bool>(N, false);
-            }
-        }
+        std::vector<std::vector<float>> Iout_avg;
+        std::vector<float> Iout_MAC;
         
-        Eigen::VectorXf Vappwl1 = Eigen::VectorXf::Zero(M);
-        Eigen::VectorXf Vappwl2 = Eigen::VectorXf::Zero(M);
-        Eigen::VectorXf Vappbl1 = Eigen::VectorXf::Zero(M);
-        Eigen::VectorXf Vappbl2 = Eigen::VectorXf::Zero(M);
-
-        Eigen::VectorXf Vguess = Eigen::VectorXf::Zero(2*M*N);
-
-        float V = 0;
-        float t = 0;
-
-        std::vector<std::vector<std::vector<float>>> Iwave;
-
         auto start_time = std::chrono::high_resolution_clock::now();
-
-        // Simulate
-        for (int i = 0; i < Vwave.size(); i++) {
-            float dv = (Vwave[i][0] - V) / ((Vwave[i][1] - t) / dt);
-            while (t < Vwave[i][1]) {
-                for (int i = 0; i < M; i++) {
-                    for (int j = 0; j < N; j++) {
-                        Vguess(i*N + j) = Vappwl1(i);
-                    }
-                }
-
-                Iwave.push_back(crossbar.ApplyVoltage(Vguess, Vappwl1, Vappwl2, Vappbl1, Vappbl2, dt));
-
-                for (int j = 0; j < M; j++) {
-                    if (input[j]) {
-                        Vappwl1(j) += dv;
-                    }
-                }
-
-                V += dv;
-                t += dt;
-            }
-        }
+        
+        crossbar.Simulate(input, {}, {}, {}, weights, Vwave, dt, Iout_avg, Iout_MAC);
         
         auto end_time = std::chrono::high_resolution_clock::now();
         auto execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
         total_time += execution_time;
-
-        // Collect results
-        std::vector<std::vector<float>> Iout_avg;
-        for (int m = 0; m < M; m++) {
-            std::vector<float> row;
-            for (int n = 0; n < N; n++) {
-                float Iavg = 0;
-                for (int j = voltage_pulse_rise_time/simulation_time_step; j < (voltage_pulse_width - voltage_pulse_fall_time)/simulation_time_step; j++) {
-                    Iavg += Iwave[j][m][n];
-                }
-                Iavg /= (voltage_pulse_width - voltage_pulse_rise_time - voltage_pulse_fall_time) / simulation_time_step;
-                row.push_back(Iavg);
-            }
-            Iout_avg.push_back(row);
-        }
-
-        std::vector<float> Iout_MAC;
-        for (int n = 0; n < N; n++) {
-            float IMAC = 0;
-            for (int m = 0; m < M; m++) {
-                IMAC += Iout_avg[m][n];
-            }
-            Iout_MAC.push_back(IMAC);
-        }
 
         // Write all to files
         if (write) {
