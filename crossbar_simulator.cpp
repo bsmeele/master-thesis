@@ -6,6 +6,8 @@
 
 #include <iostream>
 
+// Sets the state of every memristor in the crossbar
+// True sets to LRS, false sets to HRS
 void CrossbarSimulator::SetRRAM(std::vector<std::vector<bool>> weights) {
     assert(weights.size() == RRAM.size());
     assert(weights[0].size() == RRAM[0].size());
@@ -17,6 +19,8 @@ void CrossbarSimulator::SetRRAM(std::vector<std::vector<bool>> weights) {
     }
 }
 
+// Sets the access transistors of the memristors
+// Each element in the input vector sets all access transistors for one row
 void CrossbarSimulator::SetAccessTransistors(std::vector<bool> gate_lines) {
     assert(gate_lines.size() == RRAM.size());
     for (int m = 0; m < M; m++) {
@@ -28,6 +32,7 @@ void CrossbarSimulator::SetAccessTransistors(std::vector<bool> gate_lines) {
     }
 }
 
+// Calculates the nodal voltages of the crossbar assuming the memristors are linear devices. Does not evolve memristor state
 Eigen::VectorXf CrossbarSimulator::LinearSolve(
         Eigen::VectorXf Vguess,
         const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,
@@ -70,6 +75,7 @@ Eigen::VectorXf CrossbarSimulator::LinearSolve(
     return SolveCam(G, Vguess, partial_G_ABCD, E, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, linear_solver);
 }
 
+// Calculates the nodal voltages of the crossbar assuming the memristors are non-linear devices. Does not evolve memristor state
 Eigen::VectorXf CrossbarSimulator::NonlinearSolve(
     Eigen::VectorXf Vguess,
     const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,
@@ -91,6 +97,7 @@ Eigen::VectorXf CrossbarSimulator::NonlinearSolve(
     }
 }
 
+// Simulates applying a voltage to the crossbar and returns the current running through each memristor. Includes evolving memristor state
 std::vector<std::vector<float>> CrossbarSimulator::ApplyVoltage(
     Eigen::VectorXf Vguess,
     const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,
@@ -135,6 +142,7 @@ std::vector<std::vector<float>> CrossbarSimulator::ApplyVoltage(
     return Iout;
 }
 
+// Calculates the column current based on the nodal voltages of the crossbar
 std::vector<float> CrossbarSimulator::CalculateIout(Eigen::VectorXf Vout) {
     std::vector<float> Iout;
     for (int j = 0; j < N; j++) {
@@ -148,18 +156,19 @@ std::vector<float> CrossbarSimulator::CalculateIout(Eigen::VectorXf Vout) {
     return Iout;
 }
 
+// Encompases a complete simulation routine
 void CrossbarSimulator::Simulate(
-        const std::vector<bool> Vwl1, const std::vector<bool> Vwl2,
-        const std::vector<bool> Vbl1, const std::vector<bool> Vbl2,
-        const std::vector<std::vector<bool>> weights,
-        const std::vector<std::array<float, 2>> waveform,
-        const float dt,
-        std::vector<std::vector<float>>& Iout,
-        std::vector<float>& Iout_MAC
+        const std::vector<bool> Vwl1, const std::vector<bool> Vwl2,  // Applied voltages to the wordlines of the crossbar
+        const std::vector<bool> Vbl1, const std::vector<bool> Vbl2,  // Applied voltages to the bitlines of the crossbar
+        const std::vector<std::vector<bool>> weights,  // matrix of weights corresponding to each crossbar. Writing weights is not simulated, instead the SetRRAM() function is used
+        const std::vector<std::array<float, 2>> waveform,  // Description of the waveform. Each element is a breakpoint consisting of a timestamp and a voltage. The wave is constructed by linearly interpolating between two breakpoints
+        const float dt,  // Time step size used for simulation
+        std::vector<std::vector<float>>& Iout,  // Output matrix for currents running through individual memristors. Will be cleared before use
+        std::vector<float>& Iout_MAC  // Output vector for column currents. Will be cleared before use
 ) {
     SetRRAM(weights);
     SetAccessTransistors(Vwl1);
-        
+    
     Eigen::VectorXf Vappwl1 = Eigen::VectorXf::Zero(M);
     Eigen::VectorXf Vappwl2 = Eigen::VectorXf::Zero(M);
     Eigen::VectorXf Vappbl1 = Eigen::VectorXf::Zero(M);
@@ -172,6 +181,8 @@ void CrossbarSimulator::Simulate(
 
     std::vector<std::vector<std::vector<float>>> Iwave;
 
+    // A voltage wave is applied to each row that is true in Vwl1
+    // The wave is simulated by linearly interpolating between two breakpoints of the waveform definition
     for (int i = 0; i < waveform.size(); i++) {
         float dv = (waveform[i][0] - V) / ((waveform[i][1] - t) / dt);
         while (t < waveform[i][1]) {
@@ -194,6 +205,8 @@ void CrossbarSimulator::Simulate(
         }
     }
     
+    // Output current is calculed by taking the average current at the peaks of the waveform
+    Iout.clear();
     for (int m = 0; m < M; m++) {
         std::vector<float> row;
         for (int n = 0; n < N; n++) {
@@ -207,6 +220,8 @@ void CrossbarSimulator::Simulate(
         Iout.push_back(row);
     }
 
+    // Output MAC current is the sum of all memristor currents of a column
+    Iout_MAC.clear();
     for (int n = 0; n < N; n++) {
         float IMAC = 0;
         for (int m = 0; m < M; m++) {
@@ -216,6 +231,7 @@ void CrossbarSimulator::Simulate(
     }
 }
 
+// Sets the crossbar parameters and recalculates the precomputed G_ABCD matrix. Parameters updated through other means will not correctly be used in simulation
 void CrossbarSimulator::SetCrossbarParameters(float Rswl1, float Rswl2, float Rsbl1, float Rsbl2, float Rwl, float Rbl) {
     this->Rswl1 = Rswl1;
     this->Rswl2 = Rswl2;

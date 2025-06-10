@@ -32,6 +32,7 @@ class CrossbarSimulator {
 
     ThreadPool pool;
 
+    // Crossbar constructor. Should be followed by the Initialize() function to instantiate the correct memristor model
     CrossbarSimulator(int M, int N) : linear_solver(), pool(simulation_num_threads) {
         this->M = M;
         this->N = N;
@@ -63,6 +64,7 @@ class CrossbarSimulator {
         partial_G_ABCD = PartiallyPrecomputeG_ABCD(M, N, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl);
     }
 
+    // Instantiates the crossbar with the provided memristor model
     template <typename MemristorType>
     void Initialize() {
         for (int i = 0; i < M; ++i) {
@@ -72,35 +74,49 @@ class CrossbarSimulator {
         }
     }
     
+    // Sets the state of every memristor in the crossbar
+    // True sets to LRS, false sets to HRS
     void SetRRAM(std::vector<std::vector<bool>> weights);
+
+    // Sets the access transistors of the memristors
+    // Each element in the input vector sets all access transistors for one row
     void SetAccessTransistors(std::vector<bool> gate_lines);
+
+    // Calculates the nodal voltages of the crossbar assuming the memristors are linear devices. Does not evolve memristor state
     Eigen::VectorXf LinearSolve(
         Eigen::VectorXf Vguess,
         const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,
         const Eigen::VectorXf& Vappbl1, const Eigen::VectorXf& Vappbl2
     );
+
+    // Calculates the nodal voltages of the crossbar assuming the memristors are non-linear devices. Does not evolve memristor state
     Eigen::VectorXf NonlinearSolve(
         Eigen::VectorXf Vguess,
         const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,
         const Eigen::VectorXf& Vappbl1, const Eigen::VectorXf& Vappbl2,
         std::string method = "fixed-point"
     );
+
+    // Simulates applying a voltage to the crossbar and returns the current running through each memristor. Includes evolving memristor state
     std::vector<std::vector<float>> ApplyVoltage(
         Eigen::VectorXf Vguess,
         const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,
         const Eigen::VectorXf& Vappbl1, const Eigen::VectorXf& Vappbl2,
         float dt, std::string method = "fixed-point"
     );
+
+    // Calculates the column current based on the nodal voltages of the crossbar
     std::vector<float> CalculateIout(Eigen::VectorXf Vout);
 
+    // Encompases a complete simulation routine
     void Simulate(
-        const std::vector<bool> Vwl1, const std::vector<bool> Vwl2,
-        const std::vector<bool> Vbl1, const std::vector<bool> Vbl2,
-        const std::vector<std::vector<bool>> weights,
-        const std::vector<std::array<float, 2>> waveform,
-        const float dt,
-        std::vector<std::vector<float>>& Iout,
-        std::vector<float>& Iout_MAC
+        const std::vector<bool> Vwl1, const std::vector<bool> Vwl2,  // Applied voltages to the wordlines of the crossbar
+        const std::vector<bool> Vbl1, const std::vector<bool> Vbl2,  // Applied voltages to the bitlines of the crossbar
+        const std::vector<std::vector<bool>> weights,  // matrix of weights corresponding to each crossbar. Writing weights is not simulated, instead the SetRRAM() function is used
+        const std::vector<std::array<float, 2>> waveform,  // Description of the waveform. Each element is a breakpoint consisting of a timestamp and a voltage. The wave is constructed by linearly interpolating between two breakpoints
+        const float dt,  // Time step size used for simulation
+        std::vector<std::vector<float>>& Iout,  // Output matrix for currents running through individual memristors. Will be cleared before use
+        std::vector<float>& Iout_MAC  // Output vector for column currents. Will be cleared before use
     );
 
     void SetCrossbarParameters(float Rswl1, float Rswl2, float Rsbl1, float Rsbl2, float Rwl, float Rbl);

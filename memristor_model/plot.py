@@ -573,6 +573,26 @@ def main():
     # plt.grid(True)
     # plt.show()
 
+    # # plt.plot(V, I_abs, '-', markersize=2, color='blue')
+    # # plt.plot(V, R_disc, '-', markersize=2, label='Disc', color='blue')
+    # # plt.plot(V, R_plug, '-', markersize=2, label='Plug', color='blue')
+    # # plt.plot(V, R_series, '-', markersize=2, label='Series', color='blue')
+    # # plt.plot(V, R_schottky, '-', markersize=2, label='Schottky', color='blue')
+    # plt.plot(V, R_total, '-', markersize=2, label='Total', color='blue')
+    # # plt.plot(V, I_abs, '-', markersize=2, label='Top right', color='blue')
+    # # plt.plot(V2, I_abs2, '-', markersize=2, label='Bottom left', color='orange')
+    # plt.yscale('log')
+    # # plt.xlim(min(V), max(V))
+    # plt.xlim(-1.5, 1.5)
+    # # plt.ylim(1e-8, max(I)*2)
+    # plt.title('Resistance curve')
+    # plt.xlabel('Voltage (V)')
+    # plt.ylabel('Resistance (Ohm)')
+    # plt.legend()
+    # plt.grid(True)
+    # plt.show()
+
+
 
 if __name__ == "__main__":
     try:

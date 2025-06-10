@@ -10,12 +10,12 @@
 Eigen::VectorXf SolveCam(
     const Eigen::MatrixXf& G,  // Conductance matrix of the devices in the crossbar
     const Eigen::VectorXf& Vguess,  // Initial guess for the nodal voltages. Supplying a zero vector acts as if no guess is given
-    Eigen::SparseMatrix<float>& G_ABCD,  // A partially precomputed version of the G_ABCD matrix. This precompution is done with the PartiallyPrecomputeG_ABCD() function
-    const Eigen::VectorXf& E,
+    Eigen::SparseMatrix<float>& G_ABCD,  // A partially precomputed version of the G_ABCD matrix, obtaineed from the PartiallyPrecomputeG_ABCD() function
+    const Eigen::VectorXf& E,  // The precomputed E vector, obtained from the ComputeE() function
     const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,  // Applied voltages to the wordlines of the crossbar
     const Eigen::VectorXf& Vappbl1, const Eigen::VectorXf& Vappbl2,  // Applied voltages to the bitlines of the crossbar
     const float Rswl1, const float Rswl2, const float Rsbl1, const float Rsbl2,  // Resitances of the wordline and bitline voltage sources
-    const float Rwl, const float Rbl,  // Wordline and bitline resistances of the crossbar
+    const float Rwl, const float Rbl,  // Wordline and bitline resistances
     Eigen::ConjugateGradient<Eigen::SparseMatrix<float>>& solver,
     const bool print  // Boolean variable to print some debug information, default false
     ) {
@@ -76,28 +76,30 @@ Eigen::VectorXf SolveCam(
         std::cout << "V:\n" << V.head(M*N) - V.tail(M*N) << std::endl << std::endl;
     }
 
-    // Submatrix A
+    // Since the partially precomputed G_ABCD matrix is bassed by reference. It needs to be returned to its original state before exiting
+
+    // Undo submatrix A
     for (int i = 0; i < M; i++) {
         for (int j = 0; j < N; j++) {
             G_ABCD.coeffRef(i*N + j, i*N + j) -= G(i, j);
         }
     }
 
-    // Submatrix B
+    // Undo submatrix B
     for (int i = 0; i < M; i++) {
         for (int j = 0; j < N; j++) {
             G_ABCD.coeffRef(i*N + j, i*N + j + M*N) = 0;
         }
     }
 
-    // Submatrix C
+    // Undo submatrix C
     for (int i = 0; i < M; i++) {
         for (int j = 0; j < N; j++) {
             G_ABCD.coeffRef(i*N + j + M*N, i*N + j) = 0;
         }
     }
 
-    // Submatrix D
+    // Undo submatrix D
     for (int i = 0; i < M; i++) {
         for (int j = 0; j < N; j++) {
             G_ABCD.coeffRef(i*N + j + M*N, i*N + j + M*N) -= G(i, j);
@@ -171,6 +173,7 @@ Eigen::SparseMatrix<float> PartiallyPrecomputeG_ABCD(
     return G_ABCD;
 }
 
+// Precomputes the E vector used by the SolveCam() function
 Eigen::VectorXf ComputeE(
     const int M, const int N,
     const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,  // Applied voltages to the wordlines of the crossbar

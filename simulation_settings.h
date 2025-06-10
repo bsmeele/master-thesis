@@ -2,13 +2,6 @@
 #define SIMULATION_SETTINGS_H_
 
 // JART VCM v1b var
-const int memristor_solving_method = 1;  // Options: 0 for bisection, 1 for fixed-point
-
-const double memristor_bisection_a = 0.5;            // 
-const double memristor_bisection_criterion = 1e-6;   // Exit criterion of the bisection solver
-const double memristor_bisection_it_max = 1e3;       // iteration limit of the bisection solver
-const double memristor_bisection_min_domain = 1e-9;  // Minimum domain of the bisection solver. If the domain is smaller than this value, it is assumed there is no solution in the given domain
-
 const double memristor_fixedpoint_criterion = 1e-6;            // Dampening factor of the fixed-point solver
 const double memristor_fixedpoint_it_max = 1e3;                // Exit criterion of the fixed-point solver
 const bool memristor_fixedpoint_warn_iteration_limit = false;  // Warns if the fixed-point solver reaches the iteration limit

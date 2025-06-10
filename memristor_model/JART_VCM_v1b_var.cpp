@@ -186,49 +186,10 @@ double JART_VCM_v1b_var::ApplyVoltage(double V_applied, double dt) {
     double I_schottky;
     std::array<double, 3> result;
 
-    switch (memristor_solving_method) {
-        case 0:
-            if (V_applied < 0) {
-                result = SolveBisection(V_applied, 0, V_applied);
-                V_schottky = result[0];
-                V_discplugserial = result[1];
-                I_schottky = result[2];
-            } else if (V_applied < phibn0 - phin) {
-                result = SolveBisection(0, V_applied, V_applied);
-                V_schottky = result[0];
-                V_discplugserial = result[1];
-                I_schottky = result[2];
-            } else if (V_applied >= phibn0 - phin) {
-                auto result1 = SolveBisection(0, phibn0 - phin, V_applied);
-                auto result2 = SolveBisection(phibn0 - phin, V_applied, V_applied);
-            
-                if (fabs(result2[0] - V_schottky_prev) < fabs(result1[0] - V_schottky_prev)) {
-                    V_schottky = result2[0];
-                    V_discplugserial = result2[1];
-                    I_schottky = result2[2];
-                } else {
-                    V_schottky = result1[0];
-                    V_discplugserial = result1[1];
-                    I_schottky = result1[2];
-                }
-            } else {
-                V_schottky = 0;
-                V_discplugserial = 0;
-                I_schottky = 0;
-            }
-            break;
-        case 1:
-            result = SolveFixedpoint(V_schottky_prev, V_applied);
-            V_schottky = result[0];
-            V_discplugserial = result[1];
-            I_schottky = result[2];
-            break;
-        default:
-            result = SolveFixedpoint(V_schottky_prev, V_applied);
-            V_schottky = result[0];
-            V_discplugserial = result[1];
-            I_schottky = result[2];
-    }
+    result = SolveFixedpoint(V_schottky_prev, V_applied);
+    V_schottky = result[0];
+    V_discplugserial = result[1];
+    I_schottky = result[2];
 
     if (std::isinf(V_schottky) || std::isinf(I_schottky) || std::isinf(V_discplugserial)) {
         return NAN;
@@ -270,6 +231,7 @@ double JART_VCM_v1b_var::GetResistance(double V_applied) {
     else { return V_applied / ApplyVoltage(V_applied, 0); }
 }
 
+// Sets the state of the memristor to either Ndiscmax or Ndiscmin
 void JART_VCM_v1b_var::SetWeight(bool weight) {
     if (weight) { Nreal = Ndiscmax; }
     else { Nreal = Ndiscmin; }
