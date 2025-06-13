@@ -102,11 +102,18 @@ class CrossbarSimulator {
         Eigen::VectorXf Vguess,
         const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,
         const Eigen::VectorXf& Vappbl1, const Eigen::VectorXf& Vappbl2,
-        float dt, std::string method = "fixed-point"
+        const float dt, std::string method = "fixed-point"
     );
 
     // Calculates the column current based on the nodal voltages of the crossbar
-    std::vector<float> CalculateIout(Eigen::VectorXf Vout);
+    std::vector<float> CalculateIout(const Eigen::VectorXf& Vout);
+
+    float Energy(
+        const Eigen::VectorXf& Vout,
+        const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,
+        const Eigen::VectorXf& Vappbl1, const Eigen::VectorXf& Vappbl2,
+        const float dt
+    );
 
     // Encompases a complete simulation routine
     void Simulate(
@@ -119,7 +126,10 @@ class CrossbarSimulator {
         std::vector<float>& Iout_MAC  // Output vector for column currents. Will be cleared before use
     );
 
+    // Sets the crossbar parameters and recalculates the precomputed G_ABCD matrix. Parameters updated through other means will not correctly be used in simulation
     void SetCrossbarParameters(float Rswl1, float Rswl2, float Rsbl1, float Rsbl2, float Rwl, float Rbl);
+
+
     void UpdatePrecomputeG_ABCD();
 };
 

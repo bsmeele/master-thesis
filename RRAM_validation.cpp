@@ -165,7 +165,6 @@ int main(int argc, char* argv[]) {
     mac_path = top_dir/"mac.bin";
     mem_path = top_dir/"mem.bin";
 
-
     auto input_data = readMatrixFromFile(input_path);
     auto weight_data = readMatrixFromFile(weight_path);
 
@@ -333,7 +332,8 @@ int main(int argc, char* argv[]) {
     float err = 0.;
     for (int i = 0; i < mac_data[0].size(); i++) {
         // std::cout << mac_data[0][i] * 1e-6 - output_data_MAC[0][i] << " ";
-        err += fabs(mac_data[0][i] * 1e-6 - output_data_MAC[0][i]);
+        // err += fabs(mac_data[0][i] * 1e-6 - output_data_MAC[0][i]);
+        err += fabs(mac_data[0][i] - output_data_MAC[0][i]);
     }
     // std::cout << std::endl;
     err = err / mac_data[0].size();
@@ -343,7 +343,8 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < mem_data[0].size(); i++) {
         for (int j = 0; j < mem_data[0][i].size(); j++) {
             // std::cout << mem_data[0][i][j] * 1e-6 - output_data[0][i][j] << " ";
-            err += fabs(mem_data[0][i][j] * 1e-6 - output_data[0][i][j]);
+            // err += fabs(mem_data[0][i][j] * 1e-6 - output_data[0][i][j]);
+            err += fabs(mem_data[0][i][j] - output_data[0][i][j]);
         }
         // std::cout << std::endl;
     }

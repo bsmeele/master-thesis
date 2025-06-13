@@ -33,6 +33,7 @@ void CrossbarSimulator::SetAccessTransistors(std::vector<bool> gate_lines) {
 }
 
 // Calculates the nodal voltages of the crossbar assuming the memristors are linear devices. Does not evolve memristor state
+// Vguess is used for any voltage dependend operations, such as memristor.GetResistance()
 Eigen::VectorXf CrossbarSimulator::LinearSolve(
         Eigen::VectorXf Vguess,
         const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,
@@ -143,7 +144,7 @@ std::vector<std::vector<float>> CrossbarSimulator::ApplyVoltage(
 }
 
 // Calculates the column current based on the nodal voltages of the crossbar
-std::vector<float> CrossbarSimulator::CalculateIout(Eigen::VectorXf Vout) {
+std::vector<float> CrossbarSimulator::CalculateIout(const Eigen::VectorXf& Vout) {
     std::vector<float> Iout;
     for (int j = 0; j < N; j++) {
         float Ioutj = 0.;
@@ -154,6 +155,40 @@ std::vector<float> CrossbarSimulator::CalculateIout(Eigen::VectorXf Vout) {
         Iout.push_back(Ioutj);
     }
     return Iout;
+}
+
+float CrossbarSimulator::Energy(
+    const Eigen::VectorXf& Vout,
+    const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,
+    const Eigen::VectorXf& Vappbl1, const Eigen::VectorXf& Vappbl2,
+    const float dt)
+{
+    float e = 0;
+
+    for (int m = 0; m < M; m++) {
+        e += pow(Vappwl1[m] - Vout[m * N], 2) / Rswl1;
+        e += pow(Vappwl2[m] - Vout[m * N + N-1], 2) / Rswl2;
+    }
+
+    for (int n = 0; n < N; n++) {
+        e += pow(Vappbl1[n] - Vout[n + M*N - M + M*N], 2) / Rsbl1;
+        e += pow(Vappbl2[n] - Vout[n + M*N - M + M*N], 2) / Rsbl2;
+    }
+
+    for (int m = 0; m < M-1; m++) {
+        for (int n = 0; n < N-1; n++) {
+            e += pow(Vout[n + m * n] - Vout[n + 1 + m * N], 2) / Rwl;
+            e += pow(Vout[n + m * n + M*N] - Vout[n + 1 + m * N + M*N], 2) / Rbl;
+        }
+    }
+
+    for (int m = 0; m < M; m++) {
+        for (int n = 0; n < N; n++) {
+            e += pow(Vout[n + m*N] - Vout[n + m*N + M*N], 2) / RRAM[m][n]->GetResistance(Vout[n + m*N] - Vout[n + m*N + M*N]);
+        }
+    }
+
+    return e * dt;
 }
 
 // Encompases a complete simulation routine

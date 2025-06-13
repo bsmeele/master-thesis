@@ -2,8 +2,8 @@ import matplotlib.pyplot as plt
 import csv
 
 def main():
-    file_path = 'out_files/out.out'
-    # file_path = 'out.out'
+    # file_path = 'out_files/out.out'
+    file_path = 'out.out'
     # file_path = 'out_files/out_16x16_bottom_left.out'
     # file_path = 'out_files/out_16x16_top_right.out'
     # file_path = 'out_files/out_16x16_top_right_access_transistors.out'
@@ -439,13 +439,13 @@ def main():
 
     plt.subplot(2, 2, 1)
     plt.plot(V, I_abs, '-', markersize=2, label='C++', color='blue')
-    plt.plot(c_AE, c_IAE_abs, markersize=2, label='Cadence', color='orange')
+    # plt.plot(c_AE, c_IAE_abs, markersize=2, label='Cadence', color='orange')
     # plt.plot(V, I_abs, '-', markersize=2, label='Top right', color='blue')
     # plt.plot(V2, I_abs2, '-', markersize=2, label='Bottom left', color='orange')
     plt.yscale('log')
-    # plt.xlim(min(V), max(V))
-    plt.xlim(-1.5, 1.5)
-    plt.ylim(1e-8, max(I)*2)
+    plt.xlim(min(V), max(V))
+    # plt.xlim(-1.5, 1.5)
+    plt.ylim(1e-8, max(I_abs)*2)
     plt.title('I-V Characteristic')
     plt.xlabel('Voltage (V)')
     plt.ylabel('Current (A)')
@@ -454,7 +454,7 @@ def main():
 
     plt.subplot(2, 2, 2)
     plt.plot(t, N, '-', markersize=2, label='C++', color='blue')
-    plt.plot(c_t_Nreal, c_Nreal, '-', markersize=2, label='Cadence', color='orange')
+    # plt.plot(c_t_Nreal, c_Nreal, '-', markersize=2, label='Cadence', color='orange')
     # plt.plot(t_dif, N_dif, '-', markersize=2, label='Error', color='purple')
     # plt.plot(t, N, '-', markersize=2, label='Top right', color='blue')
     # plt.plot(t2, N2, '-', markersize=2, label='Bottom left', color='orange')
@@ -468,7 +468,7 @@ def main():
 
     plt.subplot(2, 2, 3)
     plt.plot(t2, T2, '-', markersize=2, label='C++', color='blue')
-    plt.plot(c_t_T, c_T, '-', markersize=2, label='Cadence', color='orange')
+    # plt.plot(c_t_T, c_T, '-', markersize=2, label='Cadence', color='orange')
     # plt.plot(t_dif, T_dif, '-', markersize=2, label='Error', color='purple')
     # plt.plot(t2, T2, '-', markersize=2, label='Top right', color='blue')
     # plt.plot(t2, T2, '-', markersize=2, label='Bottom left', color='orange')
@@ -520,35 +520,35 @@ def main():
     # plt.legend()
     # plt.grid(True)
 
+    # plt.subplot(2, 2, 4)
+    # plt.plot(t_dif, I_dif, '-', color='blue')
+    # # plt.plot(t_dif, I_dif_reg, '-', color='orange')
+    # # plt.plot(t, I_dif2, '-')
+    # plt.yscale('log')
+    # plt.xlim(0, 6)
+    # plt.ylim(1e-12, 0)
+    # plt.title('Regularized current difference between Cadence and C++ simulation')
+    # plt.xlabel('Time (s)')
+    # plt.ylabel('Current difference (A)')
+    # plt.grid(True)
+
     plt.subplot(2, 2, 4)
-    plt.plot(t_dif, I_dif, '-', color='blue')
-    plt.plot(t_dif, I_dif_reg, '-', color='orange')
-    # plt.plot(t, I_dif2, '-')
+    plt.plot(t, R_disc, '-', label="R_disc", color='blue')
+    # plt.plot(c_t_Rdisc, c_Rdisc, '-', label="Cadence", color='orange')
+    plt.plot(t, R_plug, '-', label="R_plug", color='orange')
+    # plt.plot(c_t_Rplug, c_Rplug, '-', label="Cadence", color='orange')
+    plt.plot(t, R_series, '-', label="R_series", color='green')
+    # plt.plot(c_t_Rline, c_Rseries, '-', label="Cadence", color='orange')
+    plt.plot(t, R_schottky, '-', label="R_schottky", color='yellow')
+    plt.plot(t, R_total, '-', label="R_total", color='purple')
     plt.yscale('log')
     plt.xlim(0, 6)
-    plt.ylim(1e-12, 0)
-    plt.title('Regularized current difference between Cadence and C++ simulation')
-    plt.xlabel('Time (s)')
-    plt.ylabel('Current difference (A)')
-    plt.grid(True)
-
-    # plt.subplot(2, 2, 4)
-    # plt.plot(t, R_disc, '-', label="R_disc", color='blue')
-    # # plt.plot(c_t_Rdisc, c_Rdisc, '-', label="Cadence", color='orange')
-    # plt.plot(t, R_plug, '-', label="R_plug", color='orange')
-    # # plt.plot(c_t_Rplug, c_Rplug, '-', label="Cadence", color='orange')
-    # plt.plot(t, R_series, '-', label="R_series", color='green')
-    # # plt.plot(c_t_Rline, c_Rseries, '-', label="Cadence", color='orange')
-    # plt.plot(t, R_schottky, '-', label="R_schottky", color='yellow')
-    # plt.plot(t, R_total, '-', label="R_total", color='purple')
-    # # plt.yscale('log')
-    # plt.xlim(0, 6)
     # plt.ylim(5e4, 8e4)
-    # plt.title('Resistance components')
-    # plt.xlabel('Time (s)')
-    # plt.ylabel('Resistance (Ohm)')
-    # plt.legend()
-    # plt.grid(True)
+    plt.title('Resistance components')
+    plt.xlabel('Time (s)')
+    plt.ylabel('Resistance (Ohm)')
+    plt.legend()
+    plt.grid(True)
 
     # plt.subplot(2, 2, 4)
     # plt.plot(t, V, '-', label='Applied', color='blue')
@@ -593,10 +593,106 @@ def main():
     # plt.show()
 
 
+def plot_resistance():
+    file_path_lrs = 'resistance_lrs.out'
+    file_path_hrs = 'resistance_hrs.out'
+
+    t_lrs = []
+    V_lrs = []
+    I_lrs = []
+    R_schottky_lrs = []
+    R_disc_lrs = []
+    R_plug_lrs = []
+    R_series_lrs = []
+    R_total_lrs = []
+
+    t_hrs = []
+    V_hrs = []
+    I_hrs = []
+    R_schottky_hrs = []
+    R_disc_hrs = []
+    R_plug_hrs = []
+    R_series_hrs = []
+    R_total_hrs = []
+
+    with open(file_path_lrs, 'r') as file:
+        for line in file:
+            numbers = line.split()
+            if len(numbers) >= 8:
+                try:
+                    t_lrs.append(float(numbers[0]))
+                    V_lrs.append(float(numbers[1]))
+                    I_lrs.append(float(numbers[2]))
+                    R_schottky_lrs.append(float(numbers[3]))
+                    R_disc_lrs.append(float(numbers[4]))
+                    R_plug_lrs.append(float(numbers[5]))
+                    R_series_lrs.append(float(numbers[6]))
+                    R_total_lrs.append(float(numbers[7]))
+
+                except ValueError:
+                    print(f"Skipping invalid line: {line.strip()}")
+
+    with open(file_path_hrs, 'r') as file:
+        for line in file:
+            numbers = line.split()
+            if len(numbers) >= 8:
+                try:
+                    t_hrs.append(float(numbers[0]))
+                    V_hrs.append(float(numbers[1]))
+                    I_hrs.append(float(numbers[2]))
+                    R_schottky_hrs.append(float(numbers[3]))
+                    R_disc_hrs.append(float(numbers[4]))
+                    R_plug_hrs.append(float(numbers[5]))
+                    R_series_hrs.append(float(numbers[6]))
+                    R_total_hrs.append(float(numbers[7]))
+
+                except ValueError:
+                    print(f"Skipping invalid line: {line.strip()}")
+
+
+    I_abs_lrs = [abs(e) for e in I_lrs]
+    I_abs_hrs = [abs(e) for e in I_hrs]
+
+    plt.figure(figsize=(10, 7))
+    # plt.plot(V_lrs, R_schottky_lrs, '-', markersize=2, label='R schottky LRS', color='blue')
+    # plt.plot(V_hrs, R_schottky_hrs, '-', markersize=2, label='R schottky HRS', color='blue')
+    # plt.plot(V_lrs, R_disc_lrs, '-', markersize=2, label='R disc LRS', color='blue')
+    # plt.plot(V_hrs, R_disc_hrs, '-', markersize=2, label='R disc HRS', color='orange')
+    # plt.plot(V_lrs, R_plug_lrs, '-', markersize=2, label='R plug LRS', color='blue')
+    # plt.plot(V_hrs, R_plug_hrs, '-', markersize=2, label='R plug HRS', color='orange')
+    # plt.plot(V_lrs, R_series_lrs, '-', markersize=2, label='R series LRS', color='blue')
+    # plt.plot(V_hrs, R_series_hrs, '-', markersize=2, label='R series HRS', color='blue')
+    # plt.plot(V_lrs, R_total_lrs, '-', markersize=2, label='R total LRS', color='blue')
+    plt.plot(V_hrs, R_total_hrs, '-', markersize=2, label='R total HRS', color='blue')
+    plt.xlim(min(V_lrs), max(V_lrs))
+    # plt.xlim(-1.5, 1.5)
+    plt.yscale('log')
+    plt.title('Resistance curve')
+    plt.xlabel('Voltage')
+    plt.ylabel('Resistance')
+    plt.legend()
+    plt.grid(True)
+
+    # plt.figure(figsize=(10, 7))
+    # plt.plot(V_lrs, I_abs_lrs, '-', markersize=2, label='LRS', color='blue')
+    # plt.plot(V_hrs, I_abs_hrs, '-', markersize=2, label='HRS', color='blue')
+    # plt.yscale('log')
+    # # plt.xlim(min(V), max(V))
+    # # plt.xlim(-1.5, 1.5)
+    # # plt.ylim(1e-8, max(I_lrs)*2)
+    # plt.title('I-V Characteristic')
+    # plt.xlabel('Voltage (V)')
+    # plt.ylabel('Current (A)')
+    # plt.legend()
+    # plt.grid(True)
+
+    plt.show()
+
 
 if __name__ == "__main__":
     try:
-        main()
+        # main()
+        plot_resistance()
     except Exception as e:
         print(e)
     

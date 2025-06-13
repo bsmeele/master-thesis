@@ -30,25 +30,33 @@ def load_bin(path, dtype=np.float64, shape_len=2):
 
 
 def main():
-    base_folder = "data/bin/batch_1"
-    dir_pattern = r"row_\d+-\d+_col_\d+-\d+"
+    # base_folder = "data/bin/batch_1"
+    # dir_pattern = r"row_\d+-\d+_col_\d+-\d+"
+    base_folder = "RRAM_validation_data/64x64/save_c_arrays"
+    dir_pattern = r"batch_\d+"
+
+    crossbar_size = 64
 
     mac_err = []
     mac_err_reg = []
-    mem_err = np.zeros((32, 32))
-    mem_err_reg = np.zeros((32, 32))
-    lrs_err = np.zeros((32, 32))
-    lrs_err_reg = np.zeros((32, 32))
-    hrs_err = np.zeros((32, 32))
-    hrs_err_reg = np.zeros((32, 32))
-    mem_avg = np.zeros((32, 32))
-    weight_sum = np.zeros((32, 32))
-    cnt = np.zeros(32)
-    lrs_cnt = np.zeros((32, 32))
-    hrs_cnt = np.zeros((32, 32))
+    mem_err = np.zeros((crossbar_size, crossbar_size))
+    mem_err_reg = np.zeros((crossbar_size, crossbar_size))
+    lrs_err = np.zeros((crossbar_size, crossbar_size))
+    lrs_err_reg = np.zeros((crossbar_size, crossbar_size))
+    hrs_err = np.zeros((crossbar_size, crossbar_size))
+    hrs_err_reg = np.zeros((crossbar_size, crossbar_size))
+    mem_avg = np.zeros((crossbar_size, crossbar_size))
+    weight_sum = np.zeros((crossbar_size, crossbar_size))
+    cnt = np.zeros(crossbar_size)
+    lrs_cnt = np.zeros((crossbar_size, crossbar_size))
+    hrs_cnt = np.zeros((crossbar_size, crossbar_size))
+
+    num_files = 0
 
     for subdir in os.listdir(base_folder):
         subdir_path = os.path.join(base_folder, subdir)
+
+        print(f"{num_files} files processed".ljust(30), end='\r')
 
         if os.path.isdir(subdir_path) and re.match(dir_pattern, subdir):
             input_data = load_bin(os.path.join(subdir_path, "input.bin"), dtype=np.int64, shape_len=2)
@@ -62,26 +70,36 @@ def main():
             for batch in range(len(mac_data)):
                 for col in range(len(mac_data[batch])):
                     # mac_err.append(mac_data[batch][col]*1e-6 - mac_data_out[batch][col])
-                    mac_err_reg.append(abs(mac_data[batch][col]*1e-6 - mac_data_out[batch][col]) / (mac_data[batch][col]*1e-6))
-                    mac_err.append(abs(mac_data[batch][col]*1e-6 - mac_data_out[batch][col]))
+                    # mac_err_reg.append(abs(mac_data[batch][col]*1e-6 - mac_data_out[batch][col]) / (mac_data[batch][col]*1e-6))
+                    # mac_err.append(abs(mac_data[batch][col]*1e-6 - mac_data_out[batch][col]))
+                    mac_err_reg.append(abs(mac_data[batch][col] - mac_data_out[batch][col]) / (mac_data[batch][col]))
+                    mac_err.append(abs(mac_data[batch][col] - mac_data_out[batch][col]))
             
             for batch in range(len(mem_data)):
                 for row in range(len(mem_data[batch])):
                     if input_data[batch][row]:
                         for col in range(len(mem_data[batch][row])):
-                            mem_err[row][col] += abs(mem_data[batch][row][col]*1e-6 - mem_data_out[batch][row][col])
-                            mem_err_reg[row][col] += abs(mem_data[batch][row][col]*1e-6 - mem_data_out[batch][row][col]) / (mem_data[batch][row][col]*1e-6)
-                            mem_avg[row][col] += mem_data[batch][row][col]*1e-6
+                            # mem_err[row][col] += abs(mem_data[batch][row][col]*1e-6 - mem_data_out[batch][row][col])
+                            # mem_err_reg[row][col] += abs(mem_data[batch][row][col]*1e-6 - mem_data_out[batch][row][col]) / (mem_data[batch][row][col]*1e-6)
+                            # mem_avg[row][col] += mem_data[batch][row][col]*1e-6
+                            mem_err[row][col] += abs(mem_data[batch][row][col] - mem_data_out[batch][row][col])
+                            mem_err_reg[row][col] += abs(mem_data[batch][row][col] - mem_data_out[batch][row][col]) / (mem_data[batch][row][col])
+                            mem_avg[row][col] += mem_data[batch][row][col]
 
                             if weight_data[row][col] > 0:
-                                lrs_err[row][col] += abs(mem_data[batch][row][col]*1e-6 - mem_data_out[batch][row][col])
-                                lrs_err_reg[row][col] += abs(mem_data[batch][row][col]*1e-6 - mem_data_out[batch][row][col]) / (mem_data[batch][row][col]*1e-6)
+                                # lrs_err[row][col] += abs(mem_data[batch][row][col]*1e-6 - mem_data_out[batch][row][col])
+                                # lrs_err_reg[row][col] += abs(mem_data[batch][row][col]*1e-6 - mem_data_out[batch][row][col]) / (mem_data[batch][row][col]*1e-6)
+                                lrs_err[row][col] += abs(mem_data[batch][row][col] - mem_data_out[batch][row][col])
+                                lrs_err_reg[row][col] += abs(mem_data[batch][row][col] - mem_data_out[batch][row][col]) / (mem_data[batch][row][col])
                                 lrs_cnt[row][col] += 1
                             else:
-                                hrs_err[row][col] += abs(mem_data[batch][row][col]*1e-6 - mem_data_out[batch][row][col])
-                                hrs_err_reg[row][col] += abs(mem_data[batch][row][col]*1e-6 - mem_data_out[batch][row][col]) / (mem_data[batch][row][col]*1e-6)
+                                # hrs_err[row][col] += abs(mem_data[batch][row][col]*1e-6 - mem_data_out[batch][row][col])
+                                # hrs_err_reg[row][col] += abs(mem_data[batch][row][col]*1e-6 - mem_data_out[batch][row][col]) / (mem_data[batch][row][col]*1e-6)
+                                hrs_err[row][col] += abs(mem_data[batch][row][col] - mem_data_out[batch][row][col])
+                                hrs_err_reg[row][col] += abs(mem_data[batch][row][col] - mem_data_out[batch][row][col]) / (mem_data[batch][row][col])
                                 hrs_cnt[row][col] += 1
                         cnt[row] += 1
+        num_files += 1
 
     print("Finished reading data")
 
@@ -95,57 +113,87 @@ def main():
             hrs_err[row][col] = hrs_err[row][col] / hrs_cnt[row][col] 
             hrs_err_reg[row][col] = hrs_err_reg[row][col] / hrs_cnt[row][col]
 
-
-    counts, bins = np.histogram(mac_err_reg, bins='auto')
-    # counts, bins = np.histogram(mac_err, bins='auto')   
+    counts, bins = np.histogram(mac_err, bins='auto')   
+    counts_reg, bins_reg = np.histogram(mac_err_reg, bins='auto')
 
     max_bin_index = np.argmax(counts)
+    max_bin_index_reg = np.argmax(counts_reg)
 
-    # Get the edges of the bin with the highest count
+    # # Get the edges of the bin with the highest count
     bin_with_highest_count = (bins[max_bin_index], bins[max_bin_index + 1])
+    bin_with_highest_count_reg = (bins_reg[max_bin_index_reg], bins_reg[max_bin_index_reg + 1])
 
-    # Get the count of entries in the bin with the highest count
+    # # Get the count of entries in the bin with the highest count
     max_count = counts[max_bin_index]
+    max_count_reg = counts_reg[max_bin_index_reg]
 
     print(f"Bin with the highest count: {bin_with_highest_count}")
     print(f"Count of entries in this bin: {max_count}")
     
+    print(f"Relative bin with the highest count: {bin_with_highest_count_reg}")
+    print(f"Count of entries in this bin: {max_count_reg}")
+    
+    plt.figure(1)
     plt.hist(bins[:-1], bins, weights=counts)
-    plt.xlabel('RElative error')
+    plt.xlabel('Error')
     plt.ylabel('Count')
-    plt.title('Histogram of the relative error')
+    plt.title('Error histogram')
+
+    plt.figure(2)
+    plt.hist(bins_reg[:-1], bins_reg, weights=counts_reg)
+    plt.xlabel('Relative error')
+    plt.ylabel('Count')
+    plt.title('Relative error histogram')
 
     # plt.figure(figsize=(10, 7))
 
     # plt.subplot(2, 2, 1)
-    # plt.imshow(mem_err, cmap='hot', interpolation='nearest')
-    # plt.colorbar(label='Error magnitude (A)')
-    # plt.title('Crossbar Error Map')
-    # plt.xlabel('Crossbar Column')
-    # plt.ylabel('Crossbar Row')
+    plt.figure(3)
+    plt.imshow(mem_err, cmap='hot', interpolation='nearest')
+    plt.colorbar(label='Error magnitude (A)')
+    plt.title('Crossbar Error Map')
+    plt.xlabel('Crossbar Column')
+    plt.ylabel('Crossbar Row')
 
     # plt.subplot(2, 2, 2)
-    # plt.imshow(mem_err_reg, cmap='hot', interpolation='nearest')
-    # plt.colorbar(label='Error magnitude')
-    # plt.title('Crossbar Relative Error Map')
-    # plt.xlabel('Crossbar Column')
-    # plt.ylabel('Crossbar Row')
+    plt.figure(4)
+    plt.imshow(mem_err_reg, cmap='hot', interpolation='nearest')
+    plt.colorbar(label='Error magnitude')
+    plt.title('Crossbar Relative Error Map')
+    plt.xlabel('Crossbar Column')
+    plt.ylabel('Crossbar Row')
 
     # plt.subplot(2, 2, 3)
-    # plt.imshow(lrs_err, cmap='hot', interpolation='nearest')
-    # # plt.imshow(lrs_err_reg, cmap='hot', interpolation='nearest')
-    # plt.colorbar(label='Error magnitude')
-    # plt.title('Crossbar LRS Error Map')
-    # plt.xlabel('Crossbar Column')
-    # plt.ylabel('Crossbar Row')
+    plt.figure(5)
+    plt.imshow(lrs_err, cmap='hot', interpolation='nearest')
+    plt.colorbar(label='Error magnitude')
+    plt.title('Crossbar LRS error map')
+    plt.xlabel('Crossbar Column')
+    plt.ylabel('Crossbar Row')
+    
+    # plt.subplot(2, 2, 3)
+    plt.figure(6)
+    plt.imshow(lrs_err_reg, cmap='hot', interpolation='nearest')
+    plt.colorbar(label='Relative error magnitude')
+    plt.title('Crossbar LRS relative error map')
+    plt.xlabel('Crossbar Column')
+    plt.ylabel('Crossbar Row')
 
     # plt.subplot(2, 2, 4)
-    # plt.imshow(hrs_err, cmap='hot', interpolation='nearest')
-    # # plt.imshow(hrs_err_reg, cmap='hot', interpolation='nearest')
-    # plt.colorbar(label='Error magnitude')
-    # plt.title('Crossbar HRS Error Map')
-    # plt.xlabel('Crossbar Column')
-    # plt.ylabel('Crossbar Row')
+    plt.figure(7)
+    plt.imshow(hrs_err, cmap='hot', interpolation='nearest')
+    plt.colorbar(label='Error magnitude')
+    plt.title('Crossbar HRS Error Map')
+    plt.xlabel('Crossbar Column')
+    plt.ylabel('Crossbar Row')
+    
+    # plt.subplot(2, 2, 4)
+    plt.figure(8)
+    plt.imshow(hrs_err_reg, cmap='hot', interpolation='nearest')
+    plt.colorbar(label='Relative error magnitude')
+    plt.title('Crossbar HRS relative error map')
+    plt.xlabel('Crossbar Column')
+    plt.ylabel('Crossbar Row')
     
     # plt.tight_layout()
     plt.show()
@@ -207,7 +255,8 @@ def other_main():
 
 if __name__ == "__main__":
     try:
-        other_main()
+        main()
+        # other_main()
     except Exception as e:
         print(e)
     

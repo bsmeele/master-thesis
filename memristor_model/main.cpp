@@ -20,6 +20,7 @@ int main() {
     // Maximum step size of 3 ms
 
     std::ofstream outfile("out.out");
+    // std::ofstream outfile("resistance_hrs.out");
 
     if (!outfile) {
         std::cout << "No out file" << std::endl;
@@ -27,10 +28,6 @@ int main() {
     }
 
     JART_VCM_v1b_var memristor = JART_VCM_v1b_var();
-    memristor.Ndiscmin = 0.008;
-    memristor.Ninit = 0.008;
-    memristor.Ninitreal = 0.008;
-    memristor.Nreal = 0.008;
 
     const double dt = 1e-3;
 
@@ -52,7 +49,8 @@ int main() {
     double V = Vwave[0][0];
     double t = Vwave[0][1];
 
-    outfile << "t V I Nreal Treal Vschottky Vdiscplugserial Rschottky Rdisc Rplug Rseries Rtotal" << std::endl;
+    // outfile << "t V I Nreal Treal Vschottky Vdiscplugserial Rschottky Rdisc Rplug Rseries Rtotal" << std::endl;
+    outfile << "t V I Rschottky Rdisc Rplug Rseries Rtotal" << std::endl;
 
     long long total_time = 0;
 
@@ -63,6 +61,7 @@ int main() {
 
             auto start_time = std::chrono::high_resolution_clock::now();
             I = memristor.ApplyVoltage(V, dt);
+            // I = memristor.ApplyVoltage(V, 0);
             auto end_time = std::chrono::high_resolution_clock::now();
 
             auto execution_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time).count();
@@ -74,6 +73,10 @@ int main() {
             << " " << (V - (memristor.Rdisc + memristor.Rplug + memristor.Rseries) * I)/I << " " << memristor.Rdisc << " " << memristor.Rplug << " " << memristor.Rseries
             << " " << V/I
             << std::endl;
+            // outfile << t << " " << V << " " << I << " "
+            // << " " << (V - (memristor.Rdisc + memristor.Rplug + memristor.Rseries) * I)/I << " " << memristor.Rdisc << " " << memristor.Rplug << " " << memristor.Rseries
+            // << " " << memristor.GetResistance(V)
+            // << std::endl;
 
             V += dv;
             t += dt;
