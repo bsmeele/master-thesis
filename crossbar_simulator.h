@@ -102,7 +102,8 @@ class CrossbarSimulator {
         Eigen::VectorXf Vguess,
         const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,
         const Eigen::VectorXf& Vappbl1, const Eigen::VectorXf& Vappbl2,
-        const float dt, std::string method = "fixed-point"
+        const float dt,
+        bool linear = false, std::string method = "fixed-point"
     );
 
     // Calculates the column current based on the nodal voltages of the crossbar
@@ -123,7 +124,8 @@ class CrossbarSimulator {
         const std::vector<std::array<float, 2>> waveform,  // Description of the waveform. Each element is a breakpoint consisting of a timestamp and a voltage. The wave is constructed by linearly interpolating between two breakpoints
         const float dt,  // Time step size used for simulation
         std::vector<std::vector<float>>& Iout,  // Output matrix for currents running through individual memristors. Will be cleared before use
-        std::vector<float>& Iout_MAC  // Output vector for column currents. Will be cleared before use
+        std::vector<float>& Iout_MAC,  // Output vector for column currents. Will be cleared before use
+        bool linear = false, bool drift = true
     );
 
     // Sets the crossbar parameters and recalculates the precomputed G_ABCD matrix. Parameters updated through other means will not correctly be used in simulation

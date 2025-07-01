@@ -16,7 +16,7 @@ Eigen::VectorXf SolveCam(
     const Eigen::VectorXf& Vappbl1, const Eigen::VectorXf& Vappbl2,  // Applied voltages to the bitlines of the crossbar
     const float Rswl1, const float Rswl2, const float Rsbl1, const float Rsbl2,  // Resitances of the wordline and bitline voltage sources
     const float Rwl, const float Rbl,  // Wordline and bitline resistances
-    Eigen::ConjugateGradient<Eigen::SparseMatrix<float>>& solver,
+    Eigen::ConjugateGradient<Eigen::SparseMatrix<float>>& solver,  // Solver that is used to solve the system
     const bool print  // Boolean variable to print some debug information, default false
     ) {
 

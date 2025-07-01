@@ -39,6 +39,7 @@ nonlinear_crossbar_solver.cpp ^
 RRAM_test_setup.cpp ^
 .\crossbar_model\linear_crossbar_solver.cpp ^
 .\memristor_model\JART_VCM_v1b_var.cpp ^
+.\memristor_model\VTEAM.cpp ^
 -o %OUTPUT3%
 
 REM Check for success

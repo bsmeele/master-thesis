@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <iostream>
+#include <sstream>
 
 void VTEAM::UpdateStateVariable(float v, float dt) {
     float dw = 0;
@@ -34,11 +35,28 @@ double VTEAM::ApplyVoltage(double v, double dt) {
 }
 
 double VTEAM::GetResistance(double v) {
-    return v/IV(v);
+    return Ron + (Roff - Ron)/(wOff - wOn) * (w - wOn);
 }
 
 void VTEAM::SetWeight(bool weight) {
     if (weight) { w = wOn; }
     else { w = wOff; }
+}
+
+std::string VTEAM::GetParams() {
+    std::ostringstream params;
+    params << "Model: VTEAM" << std::endl
+        << "vOff:" << vOff << std::endl
+        << "vOn: " << vOn << std::endl
+        << "kOff: " << kOff << std::endl
+        << "kOn: " << kOn << std::endl
+        << "alphaOff: " << alphaOff << std::endl
+        << "alphaOn: " << alphaOn << std::endl
+        << "Ron: " << Ron << std::endl
+        << "Roff: " << Roff << std::endl
+        << "wOn: " << wOn << std::endl
+        << "wOff: " << wOff << std::endl
+        << "d: " << d << std::endl;
+    return params.str();
 }
 

@@ -1,5 +1,6 @@
 #include "../simulation_settings.h"
 #include "JART_VCM_v1b_var.h"
+#include "dummy_nonlinear_memristor.h"
 
 #include <iostream>
 #include <fstream>
@@ -28,6 +29,7 @@ int main() {
     }
 
     JART_VCM_v1b_var memristor = JART_VCM_v1b_var();
+    // DummyNonlinear memristor = DummyNonlinear();
 
     const double dt = 1e-3;
 
@@ -49,8 +51,8 @@ int main() {
     double V = Vwave[0][0];
     double t = Vwave[0][1];
 
-    // outfile << "t V I Nreal Treal Vschottky Vdiscplugserial Rschottky Rdisc Rplug Rseries Rtotal" << std::endl;
-    outfile << "t V I Rschottky Rdisc Rplug Rseries Rtotal" << std::endl;
+    outfile << "t V I Nreal Treal Vschottky Vdiscplugserial Rschottky Rdisc Rplug Rseries Rtotal" << std::endl;
+    // outfile << "t V I Rschottky Rdisc Rplug Rseries Rtotal" << std::endl;
 
     long long total_time = 0;
 
@@ -77,6 +79,7 @@ int main() {
             // << " " << (V - (memristor.Rdisc + memristor.Rplug + memristor.Rseries) * I)/I << " " << memristor.Rdisc << " " << memristor.Rplug << " " << memristor.Rseries
             // << " " << memristor.GetResistance(V)
             // << std::endl;
+            // outfile << t << " " << V << " " << I << " " << memristor.R << " " << memristor.GetResistance(V) << std::endl;
 
             V += dv;
             t += dt;

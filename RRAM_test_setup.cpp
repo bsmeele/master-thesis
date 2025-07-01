@@ -4,6 +4,9 @@
 #include "simulation_settings.h"
 #include "memristor.h"
 #include "JART_VCM_v1b_var.h"
+#include "dummy_memristor.h"
+#include "dummy_nonlinear_memristor.h"
+#include "VTEAM.h"
 
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
@@ -16,20 +19,60 @@
 #include <algorithm>
 #include <regex>
 #include <string>
+#include <cmath>
 
-// Input argumets: M N batch_size write weight_ratio input_ratio
 int main(int argc, char* argv[]) {
-    srand((unsigned int) time(0));
+    int M = 64;
+    int N = 64;
+    int batch_size = 1;
+    bool write = false;
+    float weight_ratio = 0.5;
+    float input_ratio = 0.5;
+    unsigned int seed = time(0);
+    bool linear = false;
+    bool drift = true;
+    int model = 0;
 
-    int M = (argc >= 2) ? std::atoi(argv[1]) : 64;
-    int N = (argc >= 3) ? std::atoi(argv[2]) : 64;
+    for (int i = 1; i < argc; i++) {
+        std::string arg = argv[i];
+        if ((arg == "-m" || arg== "-M" || arg == "-row" || arg == "-rows") && argc > i+1) {
+            M = std::stoi(argv[i+1]);
+        } else if ((arg == "-n" || arg == "-N" || arg == "-col" || arg == "-cols") && argc > i+1) {
+            N = std::stoi(argv[i+1]);
+        } else if ((arg == "-b" || arg == "-batch_size") && argc > i+1) {
+            batch_size = std::stoi(argv[i+1]);
+        } else if ((arg == "-w" || arg == "-write") && argc > i+1) {
+            write = (std::atoi(argv[i+1]) == 1) ? true : false;
+        } else if ((arg == "-wr" || arg == "-weight_ratio") && argc > i+1) {
+            weight_ratio = std::atof(argv[i+1]);
+        } else if ((arg == "-ir" || argv[i] == "-input_ratio") && argc > i+1) {
+            input_ratio = std::atof(argv[i+1]);
+        } else if ((arg == "-s" || arg == "-seed") && argc > i+1) {
+            seed = std::stoul(argv[i+1]);
+        } else if ((arg == "-l" || arg == "-linear") && argc > i+1) {
+            linear = (std::atoi(argv[i+1]) == 1) ? true : false;
+        } else if ((arg == "-d" || arg == "-drift") && argc > i+1) {
+            drift = (std::atoi(argv[i+1]) == 1) ? true : false;
+        } else if ((arg == "-model") && argc > i+1) {
+            model = std::stoi(argv[i+1]);
+        }
+    }
 
-    int batch_size = (argc >= 4) ? std::atoi(argv[3]) : 1;
+    std::cout << "Random seed: " << seed << std::endl;
 
-    bool write = (argc >= 5 && std::atoi(argv[4]) == 1) ? true : false;
+    srand(seed);
+    // srand((unsigned int) time(0));
+    // srand(42);
 
-    float weight_ratio = (argc >= 6) ? std::atof(argv[5]) : 0.5;  // 0 is all HRS, 1 is all LRS
-    float input_ratio = (argc >= 7) ? std::atof(argv[6]) : 0.5;  // 0 is all off, 1 is all on
+    // int M = (argc >= 2) ? std::atoi(argv[1]) : 64;
+    // int N = (argc >= 3) ? std::atoi(argv[2]) : 64;
+
+    // int batch_size = (argc >= 4) ? std::atoi(argv[3]) : 1;
+
+    // bool write = (argc >= 5 && std::atoi(argv[4]) == 1) ? true : false;
+
+    // float weight_ratio = (argc >= 6) ? std::atof(argv[5]) : 0.5;  // 0 is all HRS, 1 is all LRS
+    // float input_ratio = (argc >= 7) ? std::atof(argv[6]) : 0.5;  // 0 is all off, 1 is all on
 
     std::cout << "Simulating " << batch_size << " " << M << "X" << N << " crossbars" << std::endl;
 
@@ -69,7 +112,22 @@ int main(int argc, char* argv[]) {
     
     // Initialize crossbar
     CrossbarSimulator crossbar = CrossbarSimulator(M, N);
-    crossbar.Initialize<JART_VCM_v1b_var>();
+    switch(model) {
+        case 0:
+            crossbar.Initialize<JART_VCM_v1b_var>();
+            break;
+        case 1:
+            crossbar.Initialize<Dummy>();
+            break;
+        case 2:
+            crossbar.Initialize<DummyNonlinear>();
+            break;
+        case 3:
+            crossbar.Initialize<VTEAM>();
+            break;
+        default:
+            crossbar.Initialize<JART_VCM_v1b_var>();
+    }
     
     std::vector<std::vector<bool>> weights(M, std::vector<bool>(N));
     std::vector<bool> input(M);
@@ -107,10 +165,10 @@ int main(int argc, char* argv[]) {
         
         auto start_time = std::chrono::high_resolution_clock::now();
         
-        crossbar.Simulate(input, {}, {}, {}, weights, Vwave, dt, Iout_avg, Iout_MAC);
+        crossbar.Simulate(input, {}, {}, {}, weights, Vwave, dt, Iout_avg, Iout_MAC, linear, drift);
         
         auto end_time = std::chrono::high_resolution_clock::now();
-        auto execution_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+        auto execution_time = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
         total_time += execution_time;
 
         // Write all to files
@@ -162,10 +220,24 @@ int main(int argc, char* argv[]) {
         log_file << "Weight ratio: " << weight_ratio << std::endl;
         log_file << "Input ratio: " << input_ratio << std::endl;
         log_file << "Batch size: " << batch_size << std::endl;
-        log_file << "Average execution time: " << total_time/batch_size << " (ms)" << std::endl;
+        log_file << "Random seed: " << seed << std::endl;
+        log_file << "Linear: " << linear << std::endl;
+        log_file << "Average execution time: " << (total_time/1000.)/batch_size << " (ms)" << std::endl;
+
+        log_file << std::endl << "Voltage pulse parameters: " << std::endl;
+        log_file << "voltage_pulse_width: " << voltage_pulse_width << std::endl;
+        log_file << "voltage_pulse_height: " << voltage_pulse_height << std::endl;
+        log_file << "voltage_pulse_rise_time: " << voltage_pulse_rise_time << std::endl;
+        log_file << "voltage_pulse_fall_time: " << voltage_pulse_fall_time << std::endl;
+
+
+        log_file << std::endl << "Memristor model paramerters: " << std::endl;
+        log_file << crossbar.RRAM[0][0]->GetParams();
+
         log_file.close();
+
+        std::cout << "\rSaved to: " << top_dir << std::endl;
     }
 
-    std::cout << "\rSimulations finished with " << total_time/batch_size << " (ms) average execution time" << std::endl;
+    std::cout << "\rSimulations finished with " << (total_time/1000.)/batch_size << " (ms) average execution time" << std::endl;
 }
-

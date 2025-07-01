@@ -2,6 +2,7 @@
 #define DUMMY_MEMRISTOR_H_
 
 #include "memristor.h"
+#include <sstream>
 
 class Dummy: public Memristor {
 public:
@@ -21,6 +22,13 @@ public:
         if (weight) { R = Ron; }
         else { R = Roff; }
     };
+    std::string GetParams() override {
+        std::ostringstream params;
+        params << "Model: Dummy" << std::endl
+            << "Ron: " << Ron << std::endl
+            << "Roff: " << Roff << std::endl;
+        return params.str();
+    }
 };
 
 #endif  // DUMMY_MEMRISTOR_H_

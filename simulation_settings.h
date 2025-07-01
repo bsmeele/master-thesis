@@ -19,9 +19,11 @@ const float non_linear_fixed_point_voltage_nudge = 1e-9;  // Amount the voltage 
 const float non_linear_fixed_point_criterion = 1e-3;      // Exit criterion of the fixed point solver
 const bool non_linear_warn_iteration_limit = true;       // Warns if the solver reaches the iteration limit
 
+const int linear_operating_point = 0;  // 0 for 0V, 1 for supply voltage
+
 // Voltage pulse (as used in RRAM_validation.cpp)
 const float voltage_pulse_width = 50e-6;     // Total voltage pulse width, including rise and fall time
-const float voltage_pulse_height = 0.1;      // Maximum height of the voltage pulse
+const float voltage_pulse_height = .1;      // Maximum height of the voltage pulse
 const float voltage_pulse_rise_time = 5e-6;  // Time for the voltage pulse to go from 0 to the pulse height
 const float voltage_pulse_fall_time = 5e-6;  // Time for the voltage pulse to go from the pulse height to 0
 

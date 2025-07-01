@@ -48,8 +48,12 @@ Eigen::VectorXf CrossbarSimulator::LinearSolve(
             for (int j = 0; j < N; j++) {
                 if (access_transistors[i][j]) {
                     futures.emplace_back(pool.enqueue([&, i, j]() {
-                        float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
-                        G(i, j) = (float) 1./RRAM[i][j]->GetResistance(v);
+                        if (linear_operating_point == 1) {
+                            float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
+                            G(i, j) = (float) 1./RRAM[i][j]->GetResistance(v);
+                        } else {
+                            G(i, j) = (float) 1./RRAM[i][j]->GetResistance(0);
+                        }
                     }));
                 } else {
                     G(i, j) = 0;
@@ -64,8 +68,12 @@ Eigen::VectorXf CrossbarSimulator::LinearSolve(
         for (int i = 0; i < M; i++) {
             for (int j = 0; j < N; j++) {
                 if (access_transistors[i][j]) {
-                    float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
-                    G(i, j) = (float) 1./RRAM[i][j]->GetResistance(v);
+                    if (linear_operating_point == 1) {
+                        float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
+                        G(i, j) = (float) 1./RRAM[i][j]->GetResistance(v);
+                    } else {
+                        G(i, j) = (float) 1./RRAM[i][j]->GetResistance(0);
+                    }
                 } else {
                     G(i, j) = 0;
                 }
@@ -103,9 +111,15 @@ std::vector<std::vector<float>> CrossbarSimulator::ApplyVoltage(
     Eigen::VectorXf Vguess,
     const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,
     const Eigen::VectorXf& Vappbl1, const Eigen::VectorXf& Vappbl2,
-    float dt, std::string method
+    float dt,
+    bool linear, std::string method
 ) {
-    Eigen::VectorXf Vout = NonlinearSolve(Vguess, Vappwl1, Vappwl2, Vappbl1, Vappbl2, method);
+    Eigen::VectorXf Vout;
+    if (linear) {
+        Vout = LinearSolve(Vguess, Vappwl1, Vappwl2, Vappbl1, Vappbl2);
+    } else {
+        Vout = NonlinearSolve(Vguess, Vappwl1, Vappwl2, Vappbl1, Vappbl2, method);
+    }
 
     std::vector<std::vector<float>> Iout(M, std::vector<float>(N));
 
@@ -116,7 +130,16 @@ std::vector<std::vector<float>> CrossbarSimulator::ApplyVoltage(
                 if (access_transistors[i][j]) {
                     futures.emplace_back(pool.enqueue([&, i, j]() {
                         float v = Vout(i*N + j) - Vout(i*N + j + M*N);
-                        Iout[i][j] = RRAM[i][j]->ApplyVoltage(v, dt);
+                        float I = RRAM[i][j]->ApplyVoltage(v, dt);
+                        if (linear) {
+                            if (linear_operating_point == 1) {
+                                Iout[i][j] = v / RRAM[i][j]->GetResistance(v);
+                            } else {
+                                Iout[i][j] = v / RRAM[i][j]->GetResistance(0);
+                            }
+                        } else {
+                            Iout[i][j] = I;
+                        }
                     }));
                 } else {
                     Iout[i][j] = 0.;
@@ -132,7 +155,16 @@ std::vector<std::vector<float>> CrossbarSimulator::ApplyVoltage(
             for (int j = 0; j < N; j++) {
                 if (access_transistors[i][j]) {
                     float v = Vout(i*N + j) - Vout(i*N + j + M*N);
-                    Iout[i][j] = RRAM[i][j]->ApplyVoltage(v, dt);
+                    float I = RRAM[i][j]->ApplyVoltage(v, dt);
+                    if (linear) {
+                        if (linear_operating_point == 1) {
+                            Iout[i][j] = v / RRAM[i][j]->GetResistance(v);
+                        } else {
+                            Iout[i][j] = v / RRAM[i][j]->GetResistance(0);
+                        }
+                    } else {
+                        Iout[i][j] = I;
+                    }
                 } else {
                     Iout[i][j] = 0.;
                 }
@@ -199,7 +231,8 @@ void CrossbarSimulator::Simulate(
         const std::vector<std::array<float, 2>> waveform,  // Description of the waveform. Each element is a breakpoint consisting of a timestamp and a voltage. The wave is constructed by linearly interpolating between two breakpoints
         const float dt,  // Time step size used for simulation
         std::vector<std::vector<float>>& Iout,  // Output matrix for currents running through individual memristors. Will be cleared before use
-        std::vector<float>& Iout_MAC  // Output vector for column currents. Will be cleared before use
+        std::vector<float>& Iout_MAC,  // Output vector for column currents. Will be cleared before use
+        bool linear, bool drift
 ) {
     SetRRAM(weights);
     SetAccessTransistors(Vwl1);
@@ -219,6 +252,14 @@ void CrossbarSimulator::Simulate(
     // A voltage wave is applied to each row that is true in Vwl1
     // The wave is simulated by linearly interpolating between two breakpoints of the waveform definition
     for (int i = 0; i < waveform.size(); i++) {
+        if (i > 0) {
+            V = waveform[i-1][0];
+            for (int j = 0; j < M; j++) {
+                if (Vwl1[j]) {
+                    Vappwl1(j) = V;
+                }
+            }
+        }
         float dv = (waveform[i][0] - V) / ((waveform[i][1] - t) / dt);
         while (t < waveform[i][1]) {
             for (int i = 0; i < M; i++) {
@@ -227,7 +268,11 @@ void CrossbarSimulator::Simulate(
                 }
             }
 
-            Iwave.push_back(ApplyVoltage(Vguess, Vappwl1, Vappwl2, Vappbl1, Vappbl2, dt));
+            if (drift) {
+                Iwave.push_back(ApplyVoltage(Vguess, Vappwl1, Vappwl2, Vappbl1, Vappbl2, dt, linear));
+            } else {
+                Iwave.push_back(ApplyVoltage(Vguess, Vappwl1, Vappwl2, Vappbl1, Vappbl2, 0, linear));
+            }
 
             for (int j = 0; j < M; j++) {
                 if (Vwl1[j]) {

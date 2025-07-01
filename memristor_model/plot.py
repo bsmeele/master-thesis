@@ -662,6 +662,82 @@ def plot_resistance():
     # plt.plot(V_hrs, R_plug_hrs, '-', markersize=2, label='R plug HRS', color='orange')
     # plt.plot(V_lrs, R_series_lrs, '-', markersize=2, label='R series LRS', color='blue')
     # plt.plot(V_hrs, R_series_hrs, '-', markersize=2, label='R series HRS', color='blue')
+    plt.plot(V_lrs, R_total_lrs, '-', markersize=2, label='R total LRS', color='blue')
+    # plt.plot(V_hrs, R_total_hrs, '-', markersize=2, label='R total HRS', color='blue')
+    plt.xlim(min(V_lrs), max(V_lrs))
+    # plt.xlim(-1.5, 1.5)
+    plt.yscale('log')
+    plt.title('Resistance curve')
+    plt.xlabel('Voltage')
+    plt.ylabel('Resistance')
+    plt.legend()
+    plt.grid(True)
+
+    # plt.figure(figsize=(10, 7))
+    # plt.plot(V_lrs, I_abs_lrs, '-', markersize=2, label='LRS', color='blue')
+    # plt.plot(V_hrs, I_abs_hrs, '-', markersize=2, label='HRS', color='blue')
+    # plt.yscale('log')
+    # # plt.xlim(min(V), max(V))
+    # # plt.xlim(-1.5, 1.5)
+    # # plt.ylim(1e-8, max(I_lrs)*2)
+    # plt.title('I-V Characteristic')
+    # plt.xlabel('Voltage (V)')
+    # plt.ylabel('Current (A)')
+    # plt.legend()
+    # plt.grid(True)
+
+    plt.show()
+
+
+def tmp():
+    file_path_lrs = 'resistance_lrs.out'
+    file_path_hrs = 'resistance_hrs.out'
+
+    t_lrs = []
+    V_lrs = []
+    I_lrs = []
+    R_lrs = []
+    R_total_lrs = []
+
+    t_hrs = []
+    V_hrs = []
+    I_hrs = []
+    R_hrs = []
+    R_total_hrs = []
+
+    with open(file_path_lrs, 'r') as file:
+        for line in file:
+            numbers = line.split()
+            if len(numbers) >= 5:
+                try:
+                    t_lrs.append(float(numbers[0]))
+                    V_lrs.append(float(numbers[1]))
+                    I_lrs.append(float(numbers[2]))
+                    R_lrs.append(float(numbers[3]))
+                    R_total_lrs.append(float(numbers[4]))
+
+                except ValueError:
+                    print(f"Skipping invalid line: {line.strip()}")
+
+    with open(file_path_hrs, 'r') as file:
+        for line in file:
+            numbers = line.split()
+            if len(numbers) >= 5:
+                try:
+                    t_hrs.append(float(numbers[0]))
+                    V_hrs.append(float(numbers[1]))
+                    I_hrs.append(float(numbers[2]))
+                    R_hrs.append(float(numbers[3]))
+                    R_total_hrs.append(float(numbers[4]))
+
+                except ValueError:
+                    print(f"Skipping invalid line: {line.strip()}")
+
+
+    I_abs_lrs = [abs(e) for e in I_lrs]
+    I_abs_hrs = [abs(e) for e in I_hrs]
+
+    plt.figure(figsize=(10, 7))
     # plt.plot(V_lrs, R_total_lrs, '-', markersize=2, label='R total LRS', color='blue')
     plt.plot(V_hrs, R_total_hrs, '-', markersize=2, label='R total HRS', color='blue')
     plt.xlim(min(V_lrs), max(V_lrs))
@@ -692,7 +768,8 @@ def plot_resistance():
 if __name__ == "__main__":
     try:
         # main()
-        plot_resistance()
+        # plot_resistance()
+        tmp()
     except Exception as e:
         print(e)
     

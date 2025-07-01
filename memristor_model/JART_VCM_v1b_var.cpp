@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cfloat>
+#include <sstream>
 
 // Based on this paper:
 // https://ieeexplore-ieee-org.tudelft.idm.oclc.org/document/9181475
@@ -237,4 +238,33 @@ void JART_VCM_v1b_var::SetWeight(bool weight) {
     else { Nreal = Ndiscmin; }
     // else { Nreal = Ninit; }
     Treal = T0;
+}
+
+std::string JART_VCM_v1b_var::GetParams() {
+    std::ostringstream params;
+    params << "Model: JART VCM v1b var" << std::endl
+        << "eps: " << eps << std::endl
+        << "epsphib: " << epsphib << std::endl
+        << "phibn0: " << phibn0 << std::endl
+        << "phin: " << phin << std::endl
+        << "un: " << un << std::endl
+        << "Ndiscmax: " << Ndiscmax << std::endl
+        << "Ndiscmin: " << Ndiscmin << std::endl
+        << "Ninit: " << Ninit << std::endl
+        << "Nplug: " << Nplug << std::endl
+        << "a: " << a << std::endl
+        << "nyo: " << nyo << std::endl
+        << "dWa: " << dWa << std::endl
+        << "Rth0: " << Rth0 << std::endl
+        << "rdet: " << rdet << std::endl
+        << "rnew: " << rnew << std::endl
+        << "lcell: " << lcell << std::endl
+        << "ldet: " << ldet << std::endl
+        << "lnew: " << lnew << std::endl
+        << "Rtheff_scaling: " << Rtheff_scaling << std::endl
+        << "RTiOx: " << RTiOx << std::endl
+        << "R0: " << R0 << std::endl
+        << "Rthline: " << Rthline << std::endl
+        << "alphaline: " << alphaline << std::endl;
+    return params.str();
 }

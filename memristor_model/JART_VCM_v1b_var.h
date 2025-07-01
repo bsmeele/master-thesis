@@ -25,36 +25,40 @@ class JART_VCM_v1b_var: public Memristor {
         const double T0 = 293;             // ambient temperature [K]
 
         // ----- Fitting parameters -----
-        double eps = 17;              // from [10:25], static hafnium oxide permittivity
-        double epsphib = 5.5;         // hafnium oxide permittivity related to image force barrier lowering
-        // double phibn0 = 0.18;         // from [0.1:0.5], nominal schottky barrier height [eV]
-        double phibn0 = 0.18;
-        double phin = 0.1;            // from [0.1:0.3], energy level difference between the Fermi level in the oxide and the oxide conduction band edge [eV]
-        double un = 4e-6;             // from [1e-6:1e-5], electron mobility [m^2/Vs]
-        double Ndiscmax = 20;         // from [0.001:1100], maximum oxygen vacancy concentration in the disc [10^26/m^3]
-        // double Ndiscmin = 0.008;      // from [0.0001:100], minimum oxygen vacancy concentration in the disc [10^26/m^3]
-        // double Ninit = 0.008;         // from [0.0001:1000], initial oxygen vacancy concentration in the disc [10^26/m^3]
-        double Ndiscmin = 0.0001;      // from [0.0001:100], minimum oxygen vacancy concentration in the disc [10^26/m^3]
-        double Ninit = 0.0001;         // from [0.0001:1000], initial oxygen vacancy concentration in the disc [10^26/m^3]
-        // double Ninit = 20;
-        // double Ndiscmin = 0.0001;
-        // double Ninit = 20.;
-        double Nplug = 20;            // from [0.001:100], oxygen vacancy concentration in the plug [10^26/m^3]
-        double a = 0.25e-9;           // from [0.1e-9:1e-9], ion hopping distance [m]
-        double nyo = 2e13;            // from [1e10:1e14], attempt frequency [Hz]
-        double dWa = 1.35;            // from [0.8:1.5], activation energy [eV]
-        // double Rth0 = 15.72e6;        // from [1e6:20e6], thermal resistance of the Hafnium Oxide [K/W]
-        double Rth0 = 1e7;
-        double rdet = 45e-9;          // from [5e-9:100e-9], radius of the filament [m]
-        double rnew = 45e-9;          // from [5e-9:100e-9], radius of the filament [m]
-        double lcell = 3;             // from [2:5], length of disc and plug region [nm]
-        double ldet = 0.4;            // from [0.1:5], length of the disc region [nm]
-        double lnew = 0.4;            // from [0.1:5], length of the disc region [nm]
-        double Rtheff_scaling = 0.27; // from [0.1:1], scaling factor for RESET
-        double RTiOx = 650;           // from [0:5000], series resistance of the TiOx layer [Ohm]
-        double R0 = 719.2437;         // Resistance at T0 [Ohm]
-        double Rthline = 90471.47;    // thermal conductivity of the Platinum and Titanium [W/mK]
-        double alphaline = 3.92e-3;   // temperature coefficient [1/K]
+        const double eps = 17;              // from [10:25], static hafnium oxide permittivity
+        const double epsphib = 5.5;         // hafnium oxide permittivity related to image force barrier lowering
+        // const double phibn0 = 0.18;         // from [0.1:0.5], nominal schottky barrier height [eV]
+        const double phibn0 = 0.18;
+        const double phin = 0.1;            // from [0.1:0.3], energy level difference between the Fermi level in the oxide and the oxide conduction band edge [eV]
+        const double un = 4e-6;             // from [1e-6:1e-5], electron mobility [m^2/Vs]
+        const double Ndiscmax = 20.;         // from [0.001:1100], maximum oxygen vacancy concentration in the disc [10^26/m^3]
+        // const double Ndiscmin = 0.008;      // from [0.0001:100], minimum oxygen vacancy concentration in the disc [10^26/m^3]
+        // const double Ninit = 0.008;         // from [0.0001:1000], initial oxygen vacancy concentration in the disc [10^26/m^3]
+        const double Ndiscmin = 0.0001;      // from [0.0001:100], minimum oxygen vacancy concentration in the disc [10^26/m^3]
+        const double Ninit = 0.0001;         // from [0.0001:1000], initial oxygen vacancy concentration in the disc [10^26/m^3]
+        // const double Ninit = 20;
+        // const double Ndiscmin = 0.0001;
+        // const double Ninit = 20.;
+        const double Nplug = 20;            // from [0.001:100], oxygen vacancy concentration in the plug [10^26/m^3]
+        const double a = 0.25e-9;           // from [0.1e-9:1e-9], ion hopping distance [m]
+        const double nyo = 2e13;            // from [1e10:1e14], attempt frequency [Hz]
+        const double dWa = 1.35;            // from [0.8:1.5], activation energy [eV]
+        // const double Rth0 = 15.72e6;        // from [1e6:20e6], thermal resistance of the Hafnium Oxide [K/W]
+        const double Rth0 = 1e7;
+        const double rdet = 45e-9;          // from [5e-9:100e-9], radius of the filament [m]
+        const double rnew = 45e-9;          // from [5e-9:100e-9], radius of the filament [m]
+        const double lcell = 3;             // from [2:5], length of disc and plug region [nm]
+        const double ldet = 0.4;            // from [0.1:5], length of the disc region [nm]
+        const double lnew = 0.4;            // from [0.1:5], length of the disc region [nm]
+        const double Rtheff_scaling = 0.27; // from [0.1:1], scaling factor for RESET
+        const double RTiOx = 650;           // from [0:5000], series resistance of the TiOx layer [Ohm]
+        const double R0 = 719.2437;         // Resistance at T0 [Ohm]
+        const double Rthline = 90471.47;    // thermal conductivity of the Platinum and Titanium [W/mK]
+        const double alphaline = 3.92e-3;   // temperature coefficient [1/K]
+
+        // const double RTiOx = 10;
+        // const double Rthline = 1000000;
+        // const double alphaline = 1e-1;
 
         double eps_eff;     // static hafnium oxide permittivity
         double epsphib_eff; // hafnium oxide permittivity related to image force barrier lowering
@@ -113,6 +117,7 @@ class JART_VCM_v1b_var: public Memristor {
         double ApplyVoltage(double V_applied, double dt) override;
         double GetResistance(double V_applied) override;
         void SetWeight(bool weight) override;
+        std::string GetParams() override;
 };
 
 #endif  // JART_VCM_v1b_var_H_

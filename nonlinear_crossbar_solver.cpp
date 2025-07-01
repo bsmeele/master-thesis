@@ -100,7 +100,7 @@ Eigen::VectorXf BroydenInvSolve(
                 }
             }
             
-            if (it >= it_max && non_linear_warn_iteration_limit) {
+            if (it >= it_max && Fv.norm() >= non_linear_fixed_point_criterion && non_linear_warn_iteration_limit) {
                 std::cout << "Non-linear fixed-point iteration limit reached with error " << Fv.norm() << std::endl;
             }
 
@@ -228,7 +228,7 @@ Eigen::VectorXf BroydenSolve(
                 }
             }
             
-            if (it >= it_max && non_linear_warn_iteration_limit) {
+            if (it >= it_max && Fv.norm() >= non_linear_fixed_point_criterion && non_linear_warn_iteration_limit) {
                 std::cout << "Non-linear fixed-point iteration limit reached with error " << Fv.norm() << std::endl;
             }
 
@@ -351,7 +351,7 @@ Eigen::VectorXf NewtonRaphsonSolve(
                 }
             }
             
-            if (it >= it_max && non_linear_warn_iteration_limit) {
+            if (it >= it_max && Fv.norm() >= non_linear_fixed_point_criterion && non_linear_warn_iteration_limit) {
                 std::cout << "Non-linear fixed-point iteration limit reached with error " << Fv.norm() << std::endl;
             }
 
@@ -499,11 +499,9 @@ Eigen::VectorXf FixedpointSolve(
                 }
             }
             
-            if (it >= it_max && non_linear_warn_iteration_limit) {
+            if (it >= it_max && Fv.norm() >= non_linear_fixed_point_criterion && non_linear_warn_iteration_limit) {
                 std::cout << "Non-linear fixed-point iteration limit reached with error " << Fv.norm() << std::endl;
             }
-
-            // std::cout << it << " " << Fv.norm() << std::endl;
 
             return Vout;
         }
