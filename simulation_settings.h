@@ -2,8 +2,8 @@
 #define SIMULATION_SETTINGS_H_
 
 // JART VCM v1b var
-const double memristor_fixedpoint_criterion = 1e-6;            // Dampening factor of the fixed-point solver
-const double memristor_fixedpoint_it_max = 1e3;                // Exit criterion of the fixed-point solver
+const double memristor_fixedpoint_criterion = 1e-6;            // Exit criterion of the fixed-point solver
+const double memristor_fixedpoint_it_max = 1e3;                // Iteration limit of the fixed-point solver
 const bool memristor_fixedpoint_warn_iteration_limit = false;  // Warns if the fixed-point solver reaches the iteration limit
 
 const double memristor_dynamic_time_step_N_limit = 1e-2;   // Changes in N above this limit trigers the dynamic time step mechanism
@@ -15,11 +15,11 @@ const double memristor_get_resistance_voltage_threshold = 1e-6;  // The maximum 
 // Non-linear solver
 const float non_linear_fixed_point_a = 1.;                // Dampening factor of the fixed point solver
 const float non_linear_fixed_point_it_max = 10;          // Iteration limit of the fixed point solver
-const float non_linear_fixed_point_voltage_nudge = 1e-9;  // Amount the voltage guess will be nudged by if a NAN is returned from the linear solver
+const float non_linear_fixed_point_voltage_nudge = 1e-9;  // Amount the voltage guess will be nudged by if a NAN is returned from the linear solver. This setting was required due to a bug that has since been resolved
 const float non_linear_fixed_point_criterion = 1e-3;      // Exit criterion of the fixed point solver
 const bool non_linear_warn_iteration_limit = true;       // Warns if the solver reaches the iteration limit
 
-const int linear_operating_point = 0;  // 0 for 0V, 1 for supply voltage
+const int linear_operating_point = 1;  // Determines the operating point of memristors when using linear mode, 0 for 0V, 1 for supply voltage, 2 for Vguess
 
 // Voltage pulse (as used in RRAM_validation.cpp)
 const float voltage_pulse_width = 50e-6;     // Total voltage pulse width, including rise and fall time
@@ -29,6 +29,6 @@ const float voltage_pulse_fall_time = 5e-6;  // Time for the voltage pulse to go
 
 const float simulation_time_step = 1e-6;     // Delta time for each simulation step. Note: the memristor model can dynamically reduce this time step temporarilly if it detects large changes (see memristor_dynamic_time_step_N_limit)
 
-const unsigned int simulation_num_threads = 4;
+const unsigned int simulation_num_threads = 4;  // Amount of worker threads used when using multithreading. 0 bypasses any thread usage
 
 #endif  // SIMULATION_SETTINGS_H_

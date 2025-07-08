@@ -108,13 +108,7 @@ std::array<double, 3> JART_VCM_v1b_var::SolveFixedpoint(double V_guess, double V
     double V_discplugserial;
 
     int it = 0;
-    double a = 1.;
-    double a_ref = 0.2;
 
-    double Vn_min_1 = 0;
-    double Vn_min_2 = 0;
-
-    double Fv_prev = INFINITY;
     while (true) {
         I_schottky = ComputeSchottkyCurrent(V_guess);
         UpdateResistance(I_schottky);

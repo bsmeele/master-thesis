@@ -230,6 +230,8 @@ int main(int argc, char* argv[]) {
         log_file << "voltage_pulse_rise_time: " << voltage_pulse_rise_time << std::endl;
         log_file << "voltage_pulse_fall_time: " << voltage_pulse_fall_time << std::endl;
 
+        log_file << std::endl << "Linear parameters: " << std::endl;
+        log_file << "linear_operating_point: " << linear_operating_point << std::endl;
 
         log_file << std::endl << "Memristor model paramerters: " << std::endl;
         log_file << crossbar.RRAM[0][0]->GetParams();

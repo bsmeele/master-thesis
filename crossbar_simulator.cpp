@@ -48,12 +48,15 @@ Eigen::VectorXf CrossbarSimulator::LinearSolve(
             for (int j = 0; j < N; j++) {
                 if (access_transistors[i][j]) {
                     futures.emplace_back(pool.enqueue([&, i, j]() {
-                        if (linear_operating_point == 1) {
-                            float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
-                            G(i, j) = (float) 1./RRAM[i][j]->GetResistance(v);
+                        float v_op;
+                        if (linear_operating_point == 0) {
+                            v_op = 0;
+                        } else if (linear_operating_point == 1) {
+                            v_op = Vappwl1(i) - Vappbl2(j);
                         } else {
-                            G(i, j) = (float) 1./RRAM[i][j]->GetResistance(0);
+                            v_op = Vguess(i*N + j) - Vguess(i*N + j + M*N);;
                         }
+                        G(i, j) = (float) 1./RRAM[i][j]->GetResistance(0);
                     }));
                 } else {
                     G(i, j) = 0;
@@ -69,9 +72,14 @@ Eigen::VectorXf CrossbarSimulator::LinearSolve(
             for (int j = 0; j < N; j++) {
                 if (access_transistors[i][j]) {
                     if (linear_operating_point == 1) {
-                        float v = Vguess(i*N + j) - Vguess(i*N + j + M*N);
-                        G(i, j) = (float) 1./RRAM[i][j]->GetResistance(v);
-                    } else {
+                        float v_op;
+                        if (linear_operating_point == 0) {
+                            v_op = 0;
+                        } else if (linear_operating_point == 1) {
+                            v_op = Vappwl1(i) - Vappbl2(j);
+                        } else {
+                            v_op = Vguess(i*N + j) - Vguess(i*N + j + M*N);;
+                        }
                         G(i, j) = (float) 1./RRAM[i][j]->GetResistance(0);
                     }
                 } else {
@@ -132,11 +140,15 @@ std::vector<std::vector<float>> CrossbarSimulator::ApplyVoltage(
                         float v = Vout(i*N + j) - Vout(i*N + j + M*N);
                         float I = RRAM[i][j]->ApplyVoltage(v, dt);
                         if (linear) {
-                            if (linear_operating_point == 1) {
-                                Iout[i][j] = v / RRAM[i][j]->GetResistance(v);
+                            float v_op;
+                            if (linear_operating_point == 0) {
+                                v_op = 0;
+                            } else if (linear_operating_point == 1) {
+                                v_op = Vappwl1(i) - Vappbl2(j);
                             } else {
-                                Iout[i][j] = v / RRAM[i][j]->GetResistance(0);
+                                v_op = v;
                             }
+                            Iout[i][j] = v / RRAM[i][j]->GetResistance(v_op);
                         } else {
                             Iout[i][j] = I;
                         }
@@ -157,11 +169,15 @@ std::vector<std::vector<float>> CrossbarSimulator::ApplyVoltage(
                     float v = Vout(i*N + j) - Vout(i*N + j + M*N);
                     float I = RRAM[i][j]->ApplyVoltage(v, dt);
                     if (linear) {
-                        if (linear_operating_point == 1) {
-                            Iout[i][j] = v / RRAM[i][j]->GetResistance(v);
+                        float v_op;
+                        if (linear_operating_point == 0) {
+                            v_op = 0;
+                        } else if (linear_operating_point == 1) {
+                            v_op = Vappwl1(i) - Vappbl2(j);
                         } else {
-                            Iout[i][j] = v / RRAM[i][j]->GetResistance(0);
+                            v_op = v;
                         }
+                        Iout[i][j] = v / RRAM[i][j]->GetResistance(v_op);
                     } else {
                         Iout[i][j] = I;
                     }

@@ -495,7 +495,7 @@ if __name__ == "__main__":
     try:
         # main()
         # other_main()
-        compare("RRAM_test_data/batch_182", "RRAM_test_data/batch_183")
+        compare("RRAM_test_data/batch_232", "RRAM_test_data/batch_233")
     except Exception as e:
         print(e)
     
