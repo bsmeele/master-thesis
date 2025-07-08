@@ -1,4 +1,15 @@
 .vscode/
 eigen/
 
-.exe
+RRAM_validation_data/
+RRAM_test_data/
+weights_inputs/
+data/
+old/
+
+memristor_model/img/
+memristor_mode/out_files/
+
+*.exe
+*.out
+*.csv

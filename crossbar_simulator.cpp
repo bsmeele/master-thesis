@@ -1,0 +1,345 @@
+#include "crossbar_simulator.h"
+
+#include "nonlinear_crossbar_solver.h"
+#include "crossbar_model/linear_crossbar_solver.h"
+#include "simulation_settings.h"
+
+#include <iostream>
+
+// Sets the state of every memristor in the crossbar
+// True sets to LRS, false sets to HRS
+void CrossbarSimulator::SetRRAM(std::vector<std::vector<bool>> weights) {
+    assert(weights.size() == RRAM.size());
+    assert(weights[0].size() == RRAM[0].size());
+
+    for (int i = 0; i < weights.size(); i++) {
+        for (int j = 0; j < weights[0].size(); j++) {
+            RRAM[i][j]->SetWeight(weights[i][j]);
+        }
+    }
+}
+
+// Sets the access transistors of the memristors
+// Each element in the input vector sets all access transistors for one row
+void CrossbarSimulator::SetAccessTransistors(std::vector<bool> gate_lines) {
+    assert(gate_lines.size() == RRAM.size());
+    for (int m = 0; m < M; m++) {
+        if (gate_lines[m]) {
+            access_transistors[m] = std::vector<bool>(N, true);
+        } else {
+            access_transistors[m] = std::vector<bool>(N, false);
+        }
+    }
+}
+
+// Calculates the nodal voltages of the crossbar assuming the memristors are linear devices. Does not evolve memristor state
+// Vguess is used for any voltage dependend operations, such as memristor.GetResistance()
+Eigen::VectorXf CrossbarSimulator::LinearSolve(
+        Eigen::VectorXf Vguess,
+        const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,
+        const Eigen::VectorXf& Vappbl1, const Eigen::VectorXf& Vappbl2
+) {
+    Eigen::VectorXf E = ComputeE(M, N, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl);
+
+    Eigen::MatrixXf G(M, N);
+    if (simulation_num_threads > 0) {
+        std::vector<std::future<void>> futures;
+        for (int i = 0; i < M; i++) {
+            for (int j = 0; j < N; j++) {
+                if (access_transistors[i][j]) {
+                    futures.emplace_back(pool.enqueue([&, i, j]() {
+                        float v_op;
+                        if (linear_operating_point == 0) {
+                            v_op = 0;
+                        } else if (linear_operating_point == 1) {
+                            v_op = Vappwl1(i) - Vappbl2(j);
+                        } else {
+                            v_op = Vguess(i*N + j) - Vguess(i*N + j + M*N);;
+                        }
+                        G(i, j) = (float) 1./RRAM[i][j]->GetResistance(0);
+                    }));
+                } else {
+                    G(i, j) = 0;
+                }
+            }
+        }
+
+        for (auto& fut : futures) {
+            fut.get();
+        } 
+    } else {
+        for (int i = 0; i < M; i++) {
+            for (int j = 0; j < N; j++) {
+                if (access_transistors[i][j]) {
+                    if (linear_operating_point == 1) {
+                        float v_op;
+                        if (linear_operating_point == 0) {
+                            v_op = 0;
+                        } else if (linear_operating_point == 1) {
+                            v_op = Vappwl1(i) - Vappbl2(j);
+                        } else {
+                            v_op = Vguess(i*N + j) - Vguess(i*N + j + M*N);;
+                        }
+                        G(i, j) = (float) 1./RRAM[i][j]->GetResistance(0);
+                    }
+                } else {
+                    G(i, j) = 0;
+                }
+            }
+        }
+    }
+
+    return SolveCam(G, Vguess, partial_G_ABCD, E, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, linear_solver);
+}
+
+// Calculates the nodal voltages of the crossbar assuming the memristors are non-linear devices. Does not evolve memristor state
+Eigen::VectorXf CrossbarSimulator::NonlinearSolve(
+    Eigen::VectorXf Vguess,
+    const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,
+    const Eigen::VectorXf& Vappbl1, const Eigen::VectorXf& Vappbl2,
+    std::string method
+) {
+    Eigen::VectorXf E = ComputeE(M, N, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl);
+
+    if (method == "fixed-point") {
+        return FixedpointSolve(RRAM, access_transistors, Vguess, partial_G_ABCD, E, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, linear_solver, pool);
+    } else if (method == "NewtonRaphson") {
+        return NewtonRaphsonSolve(RRAM, access_transistors, Vguess, partial_G_ABCD, E, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, linear_solver);
+    } else if (method == "Broyden") {
+        return BroydenSolve(RRAM, access_transistors, Vguess, partial_G_ABCD, E, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, linear_solver);
+    } else if (method == "BroydenInv") {
+        return BroydenInvSolve(RRAM, access_transistors, Vguess, partial_G_ABCD, E, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, linear_solver);
+    } else {
+        return FixedpointSolve(RRAM, access_transistors, Vguess, partial_G_ABCD, E, Vappwl1, Vappwl2, Vappbl1, Vappbl2, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl, linear_solver, pool);
+    }
+}
+
+// Simulates applying a voltage to the crossbar and returns the current running through each memristor. Includes evolving memristor state
+std::vector<std::vector<float>> CrossbarSimulator::ApplyVoltage(
+    Eigen::VectorXf Vguess,
+    const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,
+    const Eigen::VectorXf& Vappbl1, const Eigen::VectorXf& Vappbl2,
+    float dt,
+    bool linear, std::string method
+) {
+    Eigen::VectorXf Vout;
+    if (linear) {
+        Vout = LinearSolve(Vguess, Vappwl1, Vappwl2, Vappbl1, Vappbl2);
+    } else {
+        Vout = NonlinearSolve(Vguess, Vappwl1, Vappwl2, Vappbl1, Vappbl2, method);
+    }
+
+    std::vector<std::vector<float>> Iout(M, std::vector<float>(N));
+
+    if (simulation_num_threads > 0) {
+        std::vector<std::future<void>> futures;
+        for (int i = 0; i < M; i++) {
+            for (int j = 0; j < N; j++) {
+                if (access_transistors[i][j]) {
+                    futures.emplace_back(pool.enqueue([&, i, j]() {
+                        float v = Vout(i*N + j) - Vout(i*N + j + M*N);
+                        float I = RRAM[i][j]->ApplyVoltage(v, dt);
+                        if (linear) {
+                            float v_op;
+                            if (linear_operating_point == 0) {
+                                v_op = 0;
+                            } else if (linear_operating_point == 1) {
+                                v_op = Vappwl1(i) - Vappbl2(j);
+                            } else {
+                                v_op = v;
+                            }
+                            Iout[i][j] = v / RRAM[i][j]->GetResistance(v_op);
+                        } else {
+                            Iout[i][j] = I;
+                        }
+                    }));
+                } else {
+                    Iout[i][j] = 0.;
+                }
+            }
+        }
+
+        for (auto& fut : futures) {
+            fut.get();
+        } 
+    } else {
+        for (int i = 0; i < M; i++) {
+            for (int j = 0; j < N; j++) {
+                if (access_transistors[i][j]) {
+                    float v = Vout(i*N + j) - Vout(i*N + j + M*N);
+                    float I = RRAM[i][j]->ApplyVoltage(v, dt);
+                    if (linear) {
+                        float v_op;
+                        if (linear_operating_point == 0) {
+                            v_op = 0;
+                        } else if (linear_operating_point == 1) {
+                            v_op = Vappwl1(i) - Vappbl2(j);
+                        } else {
+                            v_op = v;
+                        }
+                        Iout[i][j] = v / RRAM[i][j]->GetResistance(v_op);
+                    } else {
+                        Iout[i][j] = I;
+                    }
+                } else {
+                    Iout[i][j] = 0.;
+                }
+            }
+        }
+    }
+
+    return Iout;
+}
+
+// Calculates the column current based on the nodal voltages of the crossbar
+std::vector<float> CrossbarSimulator::CalculateIout(const Eigen::VectorXf& Vout) {
+    std::vector<float> Iout;
+    for (int j = 0; j < N; j++) {
+        float Ioutj = 0.;
+        for (int i = 0; i < M; i++) {
+            float v = Vout(i*N + j) - Vout(i*N + j + M*N);
+            Ioutj += RRAM[i][j]->ApplyVoltage(v, 0);
+        }
+        Iout.push_back(Ioutj);
+    }
+    return Iout;
+}
+
+float CrossbarSimulator::Energy(
+    const Eigen::VectorXf& Vout,
+    const Eigen::VectorXf& Vappwl1, const Eigen::VectorXf& Vappwl2,
+    const Eigen::VectorXf& Vappbl1, const Eigen::VectorXf& Vappbl2,
+    const float dt)
+{
+    float e = 0;
+
+    for (int m = 0; m < M; m++) {
+        e += pow(Vappwl1[m] - Vout[m * N], 2) / Rswl1;
+        e += pow(Vappwl2[m] - Vout[m * N + N-1], 2) / Rswl2;
+    }
+
+    for (int n = 0; n < N; n++) {
+        e += pow(Vappbl1[n] - Vout[n + M*N - M + M*N], 2) / Rsbl1;
+        e += pow(Vappbl2[n] - Vout[n + M*N - M + M*N], 2) / Rsbl2;
+    }
+
+    for (int m = 0; m < M-1; m++) {
+        for (int n = 0; n < N-1; n++) {
+            e += pow(Vout[n + m * n] - Vout[n + 1 + m * N], 2) / Rwl;
+            e += pow(Vout[n + m * n + M*N] - Vout[n + 1 + m * N + M*N], 2) / Rbl;
+        }
+    }
+
+    for (int m = 0; m < M; m++) {
+        for (int n = 0; n < N; n++) {
+            e += pow(Vout[n + m*N] - Vout[n + m*N + M*N], 2) / RRAM[m][n]->GetResistance(Vout[n + m*N] - Vout[n + m*N + M*N]);
+        }
+    }
+
+    return e * dt;
+}
+
+// Encompases a complete simulation routine
+void CrossbarSimulator::Simulate(
+        const std::vector<bool> Vwl1, const std::vector<bool> Vwl2,  // Applied voltages to the wordlines of the crossbar
+        const std::vector<bool> Vbl1, const std::vector<bool> Vbl2,  // Applied voltages to the bitlines of the crossbar
+        const std::vector<std::vector<bool>> weights,  // matrix of weights corresponding to each crossbar. Writing weights is not simulated, instead the SetRRAM() function is used
+        const std::vector<std::array<float, 2>> waveform,  // Description of the waveform. Each element is a breakpoint consisting of a timestamp and a voltage. The wave is constructed by linearly interpolating between two breakpoints
+        const float dt,  // Time step size used for simulation
+        std::vector<std::vector<float>>& Iout,  // Output matrix for currents running through individual memristors. Will be cleared before use
+        std::vector<float>& Iout_MAC,  // Output vector for column currents. Will be cleared before use
+        bool linear, bool drift
+) {
+    SetRRAM(weights);
+    SetAccessTransistors(Vwl1);
+    
+    Eigen::VectorXf Vappwl1 = Eigen::VectorXf::Zero(M);
+    Eigen::VectorXf Vappwl2 = Eigen::VectorXf::Zero(M);
+    Eigen::VectorXf Vappbl1 = Eigen::VectorXf::Zero(M);
+    Eigen::VectorXf Vappbl2 = Eigen::VectorXf::Zero(M);
+
+    Eigen::VectorXf Vguess = Eigen::VectorXf::Zero(2*M*N);
+
+    float V = 0;
+    float t = 0;
+
+    std::vector<std::vector<std::vector<float>>> Iwave;
+
+    // A voltage wave is applied to each row that is true in Vwl1
+    // The wave is simulated by linearly interpolating between two breakpoints of the waveform definition
+    for (int i = 0; i < waveform.size(); i++) {
+        if (i > 0) {
+            V = waveform[i-1][0];
+            for (int j = 0; j < M; j++) {
+                if (Vwl1[j]) {
+                    Vappwl1(j) = V;
+                }
+            }
+        }
+        float dv = (waveform[i][0] - V) / ((waveform[i][1] - t) / dt);
+        while (t < waveform[i][1]) {
+            for (int i = 0; i < M; i++) {
+                for (int j = 0; j < N; j++) {
+                    Vguess(i*N + j) = Vappwl1(i);
+                }
+            }
+
+            if (drift) {
+                Iwave.push_back(ApplyVoltage(Vguess, Vappwl1, Vappwl2, Vappbl1, Vappbl2, dt, linear));
+            } else {
+                Iwave.push_back(ApplyVoltage(Vguess, Vappwl1, Vappwl2, Vappbl1, Vappbl2, 0, linear));
+            }
+
+            for (int j = 0; j < M; j++) {
+                if (Vwl1[j]) {
+                    Vappwl1(j) += dv;
+                }
+            }
+
+            V += dv;
+            t += dt;
+        }
+    }
+    
+    // Output current is calculed by taking the average current at the peaks of the waveform
+    Iout.clear();
+    for (int m = 0; m < M; m++) {
+        std::vector<float> row;
+        for (int n = 0; n < N; n++) {
+            float Iavg = 0;
+            for (int j = voltage_pulse_rise_time/simulation_time_step; j < (voltage_pulse_width - voltage_pulse_fall_time)/simulation_time_step; j++) {
+                Iavg += Iwave[j][m][n];
+            }
+            Iavg /= (voltage_pulse_width - voltage_pulse_rise_time - voltage_pulse_fall_time) / simulation_time_step;
+            row.push_back(Iavg);
+        }
+        Iout.push_back(row);
+    }
+
+    // Output MAC current is the sum of all memristor currents of a column
+    Iout_MAC.clear();
+    for (int n = 0; n < N; n++) {
+        float IMAC = 0;
+        for (int m = 0; m < M; m++) {
+            IMAC += Iout[m][n];
+        }
+        Iout_MAC.push_back(IMAC);
+    }
+}
+
+// Sets the crossbar parameters and recalculates the precomputed G_ABCD matrix. Parameters updated through other means will not correctly be used in simulation
+void CrossbarSimulator::SetCrossbarParameters(float Rswl1, float Rswl2, float Rsbl1, float Rsbl2, float Rwl, float Rbl) {
+    this->Rswl1 = Rswl1;
+    this->Rswl2 = Rswl2;
+    this->Rsbl1 = Rsbl1;
+    this->Rsbl2 = Rsbl2;
+    
+    this->Rwl = Rwl;
+    this->Rbl = Rbl;
+    
+    UpdatePrecomputeG_ABCD();
+}
+
+void CrossbarSimulator::UpdatePrecomputeG_ABCD() {
+    partial_G_ABCD = PartiallyPrecomputeG_ABCD(M, N, Rswl1, Rswl2, Rsbl1, Rsbl2, Rwl, Rbl);
+}
